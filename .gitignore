@@ -1,0 +1,7 @@
+/target
+.env
+.data
+data
+.vscode
+*.hcl
+launch.json

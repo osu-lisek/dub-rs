@@ -1,0 +1,28 @@
+version: '3'
+
+
+services:
+  api:
+    extends:
+      file: 'docker-compose.common.yml'
+      service: dub
+    ports:
+      - 9888:3000
+    environment:
+      - APP_COMPONENT=api
+  bancho:
+    extends:
+      file: 'docker-compose.common.yml'
+      service: dub
+    ports:
+      - 9889:3000
+    environment:
+      - APP_COMPONENT=bancho
+  web:
+    extends:
+      file: 'docker-compose.common.yml'
+      service: dub
+    ports:
+      - 9890:3000
+    environment:
+      - APP_COMPONENT=web

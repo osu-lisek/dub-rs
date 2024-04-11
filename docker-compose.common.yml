@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  dub:
+    image: registry.lisek.world/dhcpcd/dub-rs:latest
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "localhost:3000"]
+      interval: 1m
+      timeout: 30s
+      retries: 5
+      start_period: 1s
+    env_file:
+      - .env

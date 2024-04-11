@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"Score\" SET \"status\" = 0 WHERE \"beatmapChecksum\" = $1 AND \"status\" = 2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c4294abb067a9708d25f454dbc43b58e37a7b53cded2f03dbab24ce2ac56cb92"
+}

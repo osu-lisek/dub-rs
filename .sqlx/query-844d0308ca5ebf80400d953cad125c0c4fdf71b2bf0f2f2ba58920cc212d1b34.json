@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"User\" SET permissions = 0, flags = 0 WHERE \"id\" = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "844d0308ca5ebf80400d953cad125c0c4fdf71b2bf0f2f2ba58920cc212d1b34"
+}
