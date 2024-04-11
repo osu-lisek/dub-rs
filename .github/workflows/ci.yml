@@ -1,10 +1,6 @@
 name: lisek!ci
 
-on:
-  push:
-    branches: ["*"]
-  pull_request:
-  merge_group:
+on: [push]
 
 env:
   DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
@@ -15,14 +11,11 @@ jobs:
     image: docker:cli
     services:
       - docker:dind
-    before_script:
-      - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    # All branches are tagged with $DOCKER_IMAGE_NAME (defaults to commit ref slug)
-    # Default branch is also tagged with `latest`
-    script:
-      - docker build --pull -t "$DOCKER_IMAGE_NAME" .
-      - docker push "$DOCKER_IMAGE_NAME"
-      - |
+    steps:
+      - run: docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+      - run: docker build --pull -t "$DOCKER_IMAGE_NAME" .
+      - run: docker push "$DOCKER_IMAGE_NAME"
+      - run: |
         if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
           docker tag "$DOCKER_IMAGE_NAME" "$CI_REGISTRY_IMAGE:latest"
           docker push "$CI_REGISTRY_IMAGE:latest"
@@ -30,15 +23,15 @@ jobs:
   docker-deploy:
     container: alpine:latest
     stage: deploy
-    script:
-      - apk update
-      - apk add openssh libcrypto3
-      - eval $(ssh-agent -s)
-      - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-      - mkdir -p ~/.ssh
-      - touch ~/.ssh/config
-      - touch ~/.ssh/known_hosts
-      - chmod -R 400 ~/.ssh
-      - ssh-keyscan $HOST >> ~/.ssh/known_hosts
-      - '[[ -f /.dockerinit ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-      - ssh $USER@$HOST "cd /root/dub-rs && docker compose pull && docker compose up -d"
+    steps:
+      - run: apk update
+      - run: apk add openssh libcrypto3
+      - run: eval $(ssh-agent -s)
+      - run: echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+      - run: mkdir -p ~/.ssh
+      - run: touch ~/.ssh/config
+      - run: touch ~/.ssh/known_hosts
+      - run: chmod -R 400 ~/.ssh
+      - run: ssh-keyscan $HOST >> ~/.ssh/known_hosts
+      - run: '[[ -f /.dockerinit ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+      - run: ssh $USER@$HOST "cd /root/dub-rs && docker compose pull && docker compose up -d"
