@@ -4,40 +4,55 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 env:
-  DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  DOCKER_IMAGE_NAME: ${{ secrets.CI_REGISTRY_IMAGE }}:${{ secrets.CI_COMMIT_REF_SLUG }}
 
 jobs:
-  docker-build:
+  build:
     runs-on: ubuntu-latest
-    image: docker:cli
-    services:
-      - docker:dind
     steps:
-      - run: docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-      - run: docker build --pull -t "$DOCKER_IMAGE_NAME" .
-      - run: docker push "$DOCKER_IMAGE_NAME"
-      - run: |
-        if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
-          docker tag "$DOCKER_IMAGE_NAME" "$CI_REGISTRY_IMAGE:latest"
-          docker push "$CI_REGISTRY_IMAGE:latest"
-        fi
-  docker-deploy:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.CI_REGISTRY_USER }}
+          password: ${{ secrets.CI_REGISTRY_PASSWORD }}
+      -
+        name: Docker BuildX
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Build & Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/clockbox:latest
+  deploy:
+    runs-on: ubuntu-latest
     container: alpine:latest
-    stage: deploy
     steps:
-      - run: apk update
-      - run: apk add openssh libcrypto3
-      - run: eval $(ssh-agent -s)
-      - run: echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-      - run: mkdir -p ~/.ssh
-      - run: touch ~/.ssh/config
-      - run: touch ~/.ssh/known_hosts
-      - run: chmod -R 400 ~/.ssh
-      - run: ssh-keyscan $HOST >> ~/.ssh/known_hosts
-      - run: '[[ -f /.dockerinit ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-      - run: ssh $USER@$HOST "cd /root/dub-rs && docker compose pull && docker compose up -d"
+      -
+        name: APK installation
+        run: |
+          apk update
+          apk add openssh libcrypto3
+      -
+        name: SSH configuration
+        run: |
+          eval $(ssh-agent -s)
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
+          mkdir -p ~/.ssh
+          touch ~/.ssh/config
+          touch ~/.ssh/known_hosts
+          chmod -R 400 ~/.ssh
+          ssh-keyscan ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+      -
+        name: Docker Compose Update
+        run: |
+          '[[ -f /.dockerinit ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+          ssh ${{ secrets.USER }}@${{ secrets.HOST }} "cd /root/dub-rs && docker compose pull && docker compose up -d"
