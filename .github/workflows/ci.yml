@@ -54,11 +54,11 @@ jobs:
         name: SSH configuration
         run: |
           eval $(ssh-agent -s)
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           mkdir -p ~/.ssh
           touch ~/.ssh/config
           touch ~/.ssh/known_hosts
           chmod -R 400 ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           ssh-keyscan ${{ secrets.HOST }} >> ~/.ssh/known_hosts
       -
         name: Docker Compose Update
