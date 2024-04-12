@@ -38,7 +38,7 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{env.REGISTRY}}/osu-lisek/dub-rs:latest
-          cache-from: type-gha
+          cache-from: type=gha
           cache-to: type=gha,mode=max
   deploy:
     needs: [build]
@@ -63,4 +63,4 @@ jobs:
       -
         name: Docker Compose Update
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "cd /root/dub-rs && docker compose pull && docker compose up -d"
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} && cd /root/dub-rs && docker compose pull && docker compose up -d"
