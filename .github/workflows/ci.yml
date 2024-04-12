@@ -54,7 +54,7 @@ jobs:
         name: SSH configuration
         run: |
           eval $(ssh-agent -s)
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           mkdir -p ~/.ssh
           touch ~/.ssh/config
           touch ~/.ssh/known_hosts
@@ -63,4 +63,4 @@ jobs:
       -
         name: Docker Compose Update
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.HOST }} "cd /root/dub-rs && docker compose pull && docker compose up -d"
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "cd /root/dub-rs && docker compose pull && docker compose up -d"
