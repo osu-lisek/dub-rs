@@ -39,6 +39,7 @@ jobs:
           push: true
           tags: ${{env.REGISTRY}}/osu-lisek/dub-rs:latest
   deploy:
+    needs: [build]
     runs-on: ubuntu-latest
     container: alpine:latest
     steps:
