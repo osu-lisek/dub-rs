@@ -60,5 +60,5 @@ jobs:
       -
         name: Docker Compose Update
         run: |
-          'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
           ssh ${{ secrets.USER }}@${{ secrets.HOST }} "cd /root/dub-rs && docker compose pull && docker compose up -d"
