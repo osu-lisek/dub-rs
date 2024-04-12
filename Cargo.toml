@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.7.4", features = ["multipart", "form"], default-features = true }
+axum = { version = "0.7.4", features = ["multipart", "form", "macros"], default-features = true }
 bcrypt = { version = "0.15.0", features = ["alloc"] }
 chrono = { version = "0.4.24", features = ["serde"] }
 clap = { version = "4.4.18", features = ["derive", "env"] }
@@ -41,6 +41,7 @@ axum_typed_multipart = "0.11.0"
 simple-rijndael = "0.3.2"
 tokio-util = "0.7.10"
 dotenvy = "0.15.7"
+sysinfo = "0.30.10"
 
 [profile.dev]
 panic = "abort"
