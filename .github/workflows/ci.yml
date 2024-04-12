@@ -38,6 +38,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{env.REGISTRY}}/osu-lisek/dub-rs:latest
+          cache-from: type-gha
+          cache-to: type=gha,mode=max
   deploy:
     needs: [build]
     runs-on: ubuntu-latest
