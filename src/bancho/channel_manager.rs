@@ -4,10 +4,9 @@ use bancho_packets::{
     server::{ChannelInfo, ChannelJoin, ChannelKick, SendMessage},
     BanchoMessage, BanchoPacket,
 };
-use chrono::Utc;
 use sqlx::prelude::FromRow;
-use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tokio::sync::{Mutex, RwLock};
+use tracing::{debug, info, warn};
 
 use crate::{
     context::Context,
@@ -33,7 +32,7 @@ pub struct Channel {
     pub channel_type: String,
     pub name: String,
     pub description: String,
-    pub users: RwLock<Vec<i32>>,
+    pub users: Mutex<Vec<i32>>,
     pub messages: RwLock<Vec<Message>>,
 }
 
@@ -55,7 +54,7 @@ impl ChannelManager {
 
     pub async fn dispose_presence(&self, presence: &Presence) {
         for channel in self.channels.read().await.values() {
-            if channel.users.read().await.contains(&presence.user.id) {
+            if channel.users.lock().await.contains(&presence.user.id) {
                 self.part(presence, channel.name.clone()).await;
             }
         }
@@ -77,7 +76,7 @@ impl ChannelManager {
                             channel_type: channel.channel_type,
                             name: channel.name,
                             description: channel.description,
-                            users: RwLock::new(Vec::new()),
+                            users: Mutex::new(Vec::new()),
                             messages: RwLock::new(Vec::new()),
                         }),
                     );
@@ -102,7 +101,17 @@ impl ChannelManager {
 
     pub async fn join_channel(&self, channel_name: &str, presence: &Presence) {
         if let Some(channel) = self.get_channel_by_name(channel_name).await {
-            channel.users.write().await.push(presence.user.id);
+            let mut users = channel.users.lock().await;
+
+            if users.contains(&presence.user.id) {
+                presence
+                .enqueue(ChannelJoin::new((format!("{}", channel_name)).into()).into_packet_data())
+                .await; // Sometimes osu doesn't know about channel that it joined
+
+                warn!("{} tried to join channel #{}, but presence is already in this channel.", presence.user.username, channel_name);
+                return;
+            }
+            users.push(presence.user.id);
             //Sending to presence packet that he joined channel
             presence
                 .enqueue(ChannelJoin::new((format!("{}", channel_name)).into()).into_packet_data())
@@ -111,6 +120,8 @@ impl ChannelManager {
                 "User {} joined channel {}",
                 presence.user.username, channel_name
             );
+
+            debug!("Users of channel #{} updated: {:#?}", channel_name, users);
         }
     }
 
@@ -121,7 +132,7 @@ impl ChannelManager {
         friendly_name: String,
     ) {
         if let Some(channel) = self.get_channel_by_name(channel_name).await {
-            channel.users.write().await.push(presence.user.id);
+            channel.users.lock().await.push(presence.user.id);
             //Sending to presence packet that he joined channel
             presence
                 .enqueue(ChannelJoin::new((format!("{}", friendly_name)).into()).into_packet_data())
@@ -143,7 +154,7 @@ impl ChannelManager {
                         ChannelInfo::new(
                             channel.name.clone().into(),
                             channel.description.clone().into(),
-                            channel.users.read().await.len() as i16,
+                            channel.users.lock().await.len() as i16,
                         )
                         .into_packet_data(),
                     )
@@ -154,18 +165,18 @@ impl ChannelManager {
 
     pub async fn part(&self, presence: &Presence, channel_name: String) {
         if let Some(channel) = self.get_channel_by_name(channel_name.as_str()).await {
-            let index = channel
-                .users
-                .read()
-                .await
+
+            let mut users = channel.users.lock().await;
+            let index = users
                 .iter()
                 .position(|&x| x == presence.user.id)
                 .unwrap();
-            channel.users.write().await.remove(index);
+            users.remove(index);
             //Sending to presence packet that he joined channel
             presence
                 .enqueue(ChannelKick::new((format!("{}", channel_name)).into()).into_packet_data())
                 .await;
+
             info!(
                 "User {} parted from channel {}",
                 presence.user.username, channel_name
@@ -184,7 +195,7 @@ impl ChannelManager {
                     description: "Temp channel".to_string(),
                     name: channel_name.to_string(),
                     messages: RwLock::new(Vec::new()),
-                    users: RwLock::new(Vec::new()),
+                    users: Mutex::new(Vec::new()),
                 }),
             );
         }
@@ -225,7 +236,7 @@ impl ChannelManager {
 
         let channel = channel.unwrap();
 
-        if !channel.users.read().await.contains(&presence.user.id) && presence.user.id != 1 {
+        if !channel.users.lock().await.contains(&presence.user.id) && presence.user.id != 1 {
             info!(
                 "User {} tried to write in channel {} that he is not in",
                 presence.user.username, payload.target
@@ -234,7 +245,7 @@ impl ChannelManager {
         }
 
         //Sending it to channel
-        for &user in channel.users.read().await.iter() {
+        for &user in channel.users.lock().await.iter() {
             if user != presence.user.id {
                 let other_presence = self.bancho_manager.get_presence_by_user_id(user).await;
 
