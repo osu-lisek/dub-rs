@@ -20,7 +20,7 @@ pub struct OnlineBeatmapset {
     pub creator: String,
     #[serde(rename = "favourite_count")]
     pub favourite_count: i64,
-    pub hype: Hype,
+    pub hype: Option<Hype>,
     pub id: i64,
     pub nsfw: bool,
     pub offset: i64,
@@ -55,7 +55,7 @@ pub struct OnlineBeatmapset {
     #[serde(rename = "legacy_thread_url")]
     pub legacy_thread_url: String,
     #[serde(rename = "nominations_summary")]
-    pub nominations_summary: NominationsSummary,
+    pub nominations_summary: Option<NominationsSummary>,
     pub ranked: i64,
     #[serde(rename = "ranked_date")]
     pub ranked_date: Value,
@@ -485,8 +485,11 @@ pub async fn get_online_beatmap_by_checksum(checksum: String) -> Result<Beatmap,
     }
 
     let response = response.unwrap();
+    let r = response.text().await.unwrap_or("".to_string()).as_str().clone().to_owned();
+    let jd = &mut serde_json::Deserializer::from_str(r.as_str());
 
-    let data = response.json::<OnlineBeatmapset>().await;
+    let data = serde_path_to_error::deserialize(jd);
+    // let data = response.json::<OnlineBeatmapset>().await;
 
     if let Err(error) = data {
         return Err(OsuServerError::FailedToFetch(format!(
@@ -495,7 +498,7 @@ pub async fn get_online_beatmap_by_checksum(checksum: String) -> Result<Beatmap,
         )));
     }
 
-    let data = data.unwrap();
+    let data: OnlineBeatmapset = data.unwrap();
 
     let beatmap = data.beatmaps.iter().find(|x| x.checksum == checksum);
 

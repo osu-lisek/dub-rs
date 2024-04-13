@@ -41,6 +41,7 @@ axum_typed_multipart = "0.11.0"
 simple-rijndael = "0.3.2"
 tokio-util = "0.7.10"
 dotenvy = "0.15.7"
+serde_path_to_error = "0.1.16"
 
 [profile.dev]
 panic = "abort"
