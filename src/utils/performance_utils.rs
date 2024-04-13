@@ -53,12 +53,6 @@ pub async fn calculate_performance_with_accuracy_list(
                                 }
                                 Ok(beatmap) => {
                                     for acc in accuracy {
-                                        // let performance = beatmap
-                                        //     .pp()
-                                        //     .accuracy(acc)
-                                        //     .mode(beatmap.mode)
-                                        //     .mods(mods.unwrap_or(0))
-                                        //     .calculate();
                                         if beatmap.mode == GameMode::Osu
                                             && mods.unwrap_or(0) & 128 == 128
                                         {
@@ -78,7 +72,7 @@ pub async fn calculate_performance_with_accuracy_list(
                                         }
 
                                         let calc =
-                                            AnyPP::new(&beatmap).accuracy(acc).mode(beatmap.mode);
+                                            AnyPP::new(&beatmap).accuracy(acc).mods(mods.unwrap_or(0)).mode(beatmap.mode);
 
                                         let attrs = calc.calculate();
 
@@ -121,8 +115,8 @@ pub async fn caculate_performance_safe(
     n300: usize,
     n100: usize,
     n50: usize,
-    _n_geki: usize,
-    _n_katu: usize,
+    n_geki: usize,
+    n_katu: usize,
     nmiss: usize,
     mode: OsuMode,
 ) -> f64 {
@@ -168,6 +162,8 @@ pub async fn caculate_performance_safe(
                         .n300(n300)
                         .n100(n100)
                         .n50(n50)
+                        .n_geki(n_geki)
+                        .n_katu(n_katu)
                         .passed_objects(n300 + n100 + n50 + nmiss)
                         .n_misses(nmiss)
                         .mode(convert_mode(mode));
