@@ -466,7 +466,7 @@ ORDER BY
     }
 }
 
-#[derive(FromRow, Debug)]
+#[derive(FromRow, Debug, Clone)]
 pub struct UserScoreWithBeatmap {
     pub score: Score,
     pub user: User,
@@ -657,6 +657,59 @@ OFFSET
             }
 
             Ok(scores_out.into_iter().flatten().collect())
+        }
+    }
+}
+
+pub async fn get_score_with_beatmap_by_id(
+    connection: &Pool<Postgres>,
+    id: i32,
+) -> Result<Option<UserScoreWithBeatmap>, OsuServerError> {
+    let scores = sqlx::query(
+        r#"
+SELECT
+    "Score".*, "User".*, "Beatmap".*,
+    "Score"."status" as score_status,
+    "Score"."id" as score_id,
+    "Score"."maxCombo" as "score_max_combo",
+    row_number() OVER (ORDER BY "Score"."submittedAt" DESC) as rank
+FROM
+    "Score"
+	JOIN "User" ON "Score"."userId" = "User"."id" 
+	JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum" 
+WHERE
+    "Score"."id" = $1
+"#,
+    )
+    .bind(id)
+    .fetch_one(connection)
+    .await;
+
+    match scores {
+        Err(error) => match error {
+            sqlx::Error::RowNotFound => Ok(None),
+            error => {
+                error!("Failed while fetching scores: {}", error);
+                Err(OsuServerError::Internal("Failed to fetch.".to_string()))
+            }
+        },
+        Ok(row) => {
+            let beatmap = Beatmap::from_row(&row).unwrap();
+            let user = User::from_row(&row).unwrap();
+            let score = Score::from_row(&row).unwrap();
+            let rank: Result<i64, sqlx::Error> = row.try_get("rank");
+            if let Err(error) = rank {
+                return Err(OsuServerError::Internal(error.to_string()));
+            }
+
+            let rank = rank.unwrap();
+
+            Ok(Some(UserScoreWithBeatmap {
+                score,
+                user,
+                beatmap,
+                rank: rank as i32,
+            }))
         }
     }
 }
