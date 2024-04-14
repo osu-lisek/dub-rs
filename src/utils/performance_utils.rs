@@ -164,7 +164,6 @@ pub async fn caculate_performance_safe(
                         .n50(n50)
                         .n_geki(n_geki)
                         .n_katu(n_katu)
-                        .passed_objects(n300 + n100 + n50 + nmiss)
                         .n_misses(nmiss)
                         .mode(convert_mode(mode));
 
