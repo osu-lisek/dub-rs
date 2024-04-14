@@ -13,6 +13,7 @@ use crate::api::serve_api;
 use crate::bancho::serve_bancho;
 use crate::clean::run_cleanup;
 use crate::context::Context;
+use crate::recalculate::recalculate_terminal;
 use crate::web::serve as serve_web;
 
 mod api;
@@ -24,6 +25,7 @@ mod db;
 mod managers;
 mod utils;
 mod web;
+mod recalculate;
 
 async fn health_check() -> &'static str {
     "OK"
@@ -79,6 +81,7 @@ async fn main() {
         "web" => serve_web(context).await,
         "bancho" => serve_bancho(context).await,
         "api" => serve_api(context).await,
+        "recalculation-terminal" => recalculate_terminal(context).await,
         "cleanup" => run_cleanup(context).await,
         _ => {
             error!("Unknown component.");

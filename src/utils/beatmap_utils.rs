@@ -300,6 +300,30 @@ pub async fn get_beatmap_by_hash(
     }
 }
 
+
+pub async fn get_beatmap_by_term(
+    connection: &Pool<Postgres>,
+    term: String,
+) -> Result<Option<Beatmap>, OsuServerError> {
+    let beatmap: Result<_, sqlx::Error> =
+        sqlx::query_as::<_, Beatmap>(r#"SELECT * FROM "Beatmap" WHERE "beatmapId" = $1 OR "checksum" = $2"#)
+            .bind(term.parse::<i64>().unwrap_or(-1))
+            .bind(term)
+            .fetch_one(connection)
+            .await;
+
+    match beatmap {
+        Err(error) => match error {
+            sqlx::Error::RowNotFound => return Ok(None),
+            err => {
+                error!("Failed to fetch beatmap from database: {}", err);
+                return Err(OsuServerError::Internal("Failed to fetch.".to_string()));
+            }
+        },
+        Ok(beatmap) => Ok(Some(beatmap)),
+    }
+}
+
 pub async fn get_beatmap_by_id(
     connection: &Pool<Postgres>,
     id: i64,
