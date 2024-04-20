@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main # I'm unsure, if this should be like this, maybe 'dev/*'?
 
 env:
   DOCKER_IMAGE_NAME: ${{ secrets.CI_REGISTRY_IMAGE }}:${{ secrets.CI_COMMIT_REF_SLUG }}
@@ -41,6 +44,7 @@ jobs:
           cache-to: type=gha,mode=max
   deploy:
     needs: [build]
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     container: alpine:latest
     steps:
