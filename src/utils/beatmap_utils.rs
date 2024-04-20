@@ -232,7 +232,7 @@ impl Beatmap {
             r#"INSERT INTO "Beatmap"
         ("title", "titleUnicode",
         "artist", "artistUnicode",
-        "creator", "version", 
+        "creator", "version",
         "parentId", "beatmapId",
         "ar", "od", "cs", "hp",
         "stars",
@@ -300,17 +300,17 @@ pub async fn get_beatmap_by_hash(
     }
 }
 
-
 pub async fn get_beatmap_by_term(
     connection: &Pool<Postgres>,
     term: String,
 ) -> Result<Option<Beatmap>, OsuServerError> {
-    let beatmap: Result<_, sqlx::Error> =
-        sqlx::query_as::<_, Beatmap>(r#"SELECT * FROM "Beatmap" WHERE "beatmapId" = $1 OR "checksum" = $2"#)
-            .bind(term.parse::<i64>().unwrap_or(-1))
-            .bind(term)
-            .fetch_one(connection)
-            .await;
+    let beatmap: Result<_, sqlx::Error> = sqlx::query_as::<_, Beatmap>(
+        r#"SELECT * FROM "Beatmap" WHERE "beatmapId" = $1 OR "checksum" = $2"#,
+    )
+    .bind(term.parse::<i64>().unwrap_or(-1))
+    .bind(term)
+    .fetch_one(connection)
+    .await;
 
     match beatmap {
         Err(error) => match error {
@@ -509,7 +509,13 @@ pub async fn get_online_beatmap_by_checksum(checksum: String) -> Result<Beatmap,
     }
 
     let response = response.unwrap();
-    let r = response.text().await.unwrap_or("".to_string()).as_str().clone().to_owned();
+    let r = response
+        .text()
+        .await
+        .unwrap_or("".to_string())
+        .as_str()
+        .clone()
+        .to_owned();
     let jd = &mut serde_json::Deserializer::from_str(r.as_str());
 
     let data = serde_path_to_error::deserialize(jd);

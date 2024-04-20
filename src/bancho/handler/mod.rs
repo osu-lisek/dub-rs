@@ -87,7 +87,7 @@ fn reconnect(delay: i32, host: String, message: String) -> Response<Body> {
 }
 
 async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
-    let started_at = SystemTime::now();
+    // let started_at = SystemTime::now();
     let (parts, body) = req.into_parts();
     let manager = parts.extensions.get::<Arc<BanchoManager>>();
     let channel_manager = parts.extensions.get::<Arc<ChannelManager>>();

@@ -3,7 +3,6 @@ use std::{ops::BitAnd, sync::Arc};
 use axum::{
     body::Body,
     extract::{Path, Query},
-    http::StatusCode,
     response::Response,
     routing::{get, post},
     Extension, Router,
