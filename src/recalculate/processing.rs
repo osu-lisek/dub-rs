@@ -4,7 +4,7 @@ use crate::{
     context::Context,
     utils::{
         http_utils::OsuMode,
-        performance_utils::caculate_performance_safe,
+        performance_utils::calculate_performance_safe,
         score_utils::{get_user_best_scores, SortMode},
         user_utils::recalculate_user_stats,
     },
@@ -15,8 +15,8 @@ use tracing::error;
 use super::CalculationQueue;
 
 pub async fn process_command(
-    command: String,
-    arguments: Vec<String>,
+    _command: String,
+    _arguments: Vec<String>,
     ctx: &Context,
     queue: &mut CalculationQueue,
 ) {
@@ -55,7 +55,7 @@ pub async fn process_command(
     }
 
     for score in scores_to_calculate {
-        let recalculation_result = caculate_performance_safe(
+        let recalculation_result = calculate_performance_safe(
             score.beatmap.beatmap_id as i64,
             score.score.mods as u32,
             score.score.count_300 as usize,
@@ -64,6 +64,7 @@ pub async fn process_command(
             score.score.count_geki as usize,
             score.score.count_katu as usize,
             score.score.count_miss as usize,
+            score.score.max_combo as usize,
             OsuMode::from_id(score.score.playmode as u8),
         )
         .await;
