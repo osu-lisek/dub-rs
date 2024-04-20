@@ -305,7 +305,7 @@ impl ChannelManager {
 
         let target = target.unwrap();
 
-        if is_restricted(&target.user).await {
+        if is_restricted(&target.user).await && payload.sender_id != 1 {
             info!(
                 "User {} tried to write in user {} that is restricted",
                 presence.user.username,
