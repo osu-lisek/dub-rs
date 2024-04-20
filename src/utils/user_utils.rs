@@ -1044,12 +1044,15 @@ pub async fn get_punishment_by_id(connection: &Pool<Postgres>, id: String) -> Op
 }
 
 pub async fn restrict_user(connection: &Pool<Postgres>, user_id: i32) {
-    let e = sqlx::query!(r#"UPDATE "User" SET "permissions" = 8 WHERE id = $1"#, user_id)
-        .execute(connection)
-        .await;
+    let e = sqlx::query!(
+        r#"UPDATE "User" SET "permissions" = 8 WHERE id = $1"#,
+        user_id
+    )
+    .execute(connection)
+    .await;
 
     match e {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(err) => {
             error!("Error while updating user: {}", err)
         }
@@ -1057,9 +1060,12 @@ pub async fn restrict_user(connection: &Pool<Postgres>, user_id: i32) {
 }
 
 pub async fn unrestrict_user(connection: &Pool<Postgres>, user_id: i32) {
-    let _ = sqlx::query!(r#"UPDATE "User" SET "permissions" = 0 WHERE id = $1"#, user_id)
-        .execute(connection)
-        .await;
+    let _ = sqlx::query!(
+        r#"UPDATE "User" SET "permissions" = 0 WHERE id = $1"#,
+        user_id
+    )
+    .execute(connection)
+    .await;
 }
 
 pub async fn get_silenced_until(connection: &Pool<Postgres>, user_id: i32) -> i64 {

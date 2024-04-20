@@ -6,7 +6,12 @@ use crate::{
         beatmap_utils::get_beatmap_by_id,
         general_utils::to_fixed,
         performance_utils::calculate_performance_with_accuracy_list,
-        score_utils::{format_mods, parse_mods}, user_utils::{find_user_by_id_or_username, is_restricted, is_user_manager, punishment_alert, remove_ranking, restrict_user, send_bancho_message, unrestrict_user}, Punishment,
+        score_utils::{format_mods, parse_mods},
+        user_utils::{
+            find_user_by_id_or_username, is_restricted, is_user_manager, punishment_alert,
+            remove_ranking, restrict_user, send_bancho_message, unrestrict_user,
+        },
+        Punishment,
     },
 };
 
@@ -58,16 +63,58 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
     if is_restricted(&user).await {
         unrestrict_user(&bot.ctx.pool, user.id).await;
 
-        let note = args.iter().skip(1).map(|x| x.to_owned()).collect::<Vec<String>>().join(" ");
-        punishment_alert(&Punishment { id: String::new(), date: NaiveDateTime::from_timestamp_millis(Utc::now().timestamp()).unwrap_or(NaiveDateTime::UNIX_EPOCH), applied_by: author.user.id, applied_to: user.id, punishment_type: "Unrestriction".to_string(), level: "LOW".to_string(), expires: false, expires_at: None, note:  note}, &user, &author.user).await;
-    
+        let note = args
+            .iter()
+            .skip(1)
+            .map(|x| x.to_owned())
+            .collect::<Vec<String>>()
+            .join(" ");
+        punishment_alert(
+            &Punishment {
+                id: String::new(),
+                date: NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
+                    .unwrap_or(NaiveDateTime::UNIX_EPOCH),
+                applied_by: author.user.id,
+                applied_to: user.id,
+                punishment_type: "Unrestriction".to_string(),
+                level: "LOW".to_string(),
+                expires: false,
+                expires_at: None,
+                note: note,
+            },
+            &user,
+            &author.user,
+        )
+        .await;
+
         send_bancho_message(&user.id, "user:restricted".to_string(), None).await;
     } else {
         restrict_user(&bot.ctx.pool, user.id).await;
 
-        let note = args.iter().skip(1).map(|x| x.to_owned()).collect::<Vec<String>>().join(" ");
-        punishment_alert(&Punishment { id: String::new(), date: NaiveDateTime::from_timestamp_millis(Utc::now().timestamp()).unwrap_or(NaiveDateTime::UNIX_EPOCH), applied_by: author.user.id, applied_to: user.id, punishment_type: "Restriction".to_string(), level: "LOW".to_string(), expires: false, expires_at: None, note:  note}, &user, &author.user).await;
-    
+        let note = args
+            .iter()
+            .skip(1)
+            .map(|x| x.to_owned())
+            .collect::<Vec<String>>()
+            .join(" ");
+        punishment_alert(
+            &Punishment {
+                id: String::new(),
+                date: NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
+                    .unwrap_or(NaiveDateTime::UNIX_EPOCH),
+                applied_by: author.user.id,
+                applied_to: user.id,
+                punishment_type: "Restriction".to_string(),
+                level: "LOW".to_string(),
+                expires: false,
+                expires_at: None,
+                note: note,
+            },
+            &user,
+            &author.user,
+        )
+        .await;
+
         remove_ranking(&bot.ctx.redis, &user).await;
         send_bancho_message(&user.id, "user:restricted".to_string(), None).await;
     }

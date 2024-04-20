@@ -105,10 +105,15 @@ impl ChannelManager {
 
             if users.contains(&presence.user.id) {
                 presence
-                .enqueue(ChannelJoin::new((format!("{}", channel_name)).into()).into_packet_data())
-                .await; // Sometimes osu doesn't know about channel that it joined
+                    .enqueue(
+                        ChannelJoin::new((format!("{}", channel_name)).into()).into_packet_data(),
+                    )
+                    .await; // Sometimes osu doesn't know about channel that it joined
 
-                warn!("{} tried to join channel #{}, but presence is already in this channel.", presence.user.username, channel_name);
+                warn!(
+                    "{} tried to join channel #{}, but presence is already in this channel.",
+                    presence.user.username, channel_name
+                );
                 return;
             }
             users.push(presence.user.id);
@@ -165,12 +170,8 @@ impl ChannelManager {
 
     pub async fn part(&self, presence: &Presence, channel_name: String) {
         if let Some(channel) = self.get_channel_by_name(channel_name.as_str()).await {
-
             let mut users = channel.users.lock().await;
-            let index = users
-                .iter()
-                .position(|&x| x == presence.user.id)
-                .unwrap();
+            let index = users.iter().position(|&x| x == presence.user.id).unwrap();
             users.remove(index);
             //Sending to presence packet that he joined channel
             presence

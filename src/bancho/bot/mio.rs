@@ -281,7 +281,7 @@ impl MioBot {
                     )
                     .await;
                 }
-            },
+            }
             "restrict" => {
                 let response: Option<String> = restrict(self, author, args.clone()).await;
                 if let Some(response) = response {

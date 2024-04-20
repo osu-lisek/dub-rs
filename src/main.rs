@@ -23,9 +23,9 @@ mod config;
 mod context;
 mod db;
 mod managers;
+mod recalculate;
 mod utils;
 mod web;
-mod recalculate;
 
 async fn health_check() -> &'static str {
     "OK"
