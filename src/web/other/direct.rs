@@ -1,7 +1,12 @@
 use std::sync::Arc;
 
-use axum::{body::Body, extract::Query, response::Response, Extension};
-use reqwest::StatusCode;
+use axum::{
+    body::Body,
+    extract::{Path, Query},
+    response::{Redirect, Response},
+    Extension,
+};
+use reqwest::{ResponseBuilderExt, StatusCode, Url};
 use serde::Deserialize;
 use tracing::info;
 
@@ -63,9 +68,9 @@ fn ranked_status_to_string(status: u8) -> &'static str {
         3 => "qualified",
         // 4 - All
         5 => "graveyard", // Graveyard
-        7 => "ranked", // Ranked (Played)
+        7 => "ranked",    // Ranked (Played)
         8 => "loved",
-        _ => ""
+        _ => "",
     }
 }
 
@@ -110,8 +115,6 @@ pub async fn search_beatmaps(
     let url = &ub.build();
     let request = reqwest::get(url).await.unwrap();
 
-    info!("URL: {}", url);
-
     if request.status() != StatusCode::OK {
         info!("Status: {}", &request.status());
         info!("URL: {}", url);
@@ -122,7 +125,11 @@ pub async fn search_beatmaps(
     let result: serde_json::Value = request.json().await.unwrap();
     let json: Vec<DirectBeatmapSet> = serde_json::from_value(result).unwrap();
 
-    let page_size = if json.iter().len() > 99 { 101 } else { json.iter().len() };
+    let page_size = if json.iter().len() > 99 {
+        101
+    } else {
+        json.iter().len()
+    };
 
     let mut body = format!("{page_size}\n");
 
@@ -130,14 +137,12 @@ pub async fn search_beatmaps(
         let mut diffs: Vec<String> = vec![];
 
         for diff in beatmap.beatmaps {
-            diffs.push(
-                format!(
-                    "[{:.2}*] {}@{}",
-                    diff.difficulty_rating,
-                    normalize_direct_name(diff.version),
-                    diff.mode_int
-                )
-            )
+            diffs.push(format!(
+                "[{:.2}*] {}@{}",
+                diff.difficulty_rating,
+                normalize_direct_name(diff.version),
+                diff.mode_int
+            ))
         }
 
         body += format!(
@@ -150,8 +155,21 @@ pub async fn search_beatmaps(
             beatmap.last_updated,
             beatmap.id,
             diffs.join(", ")
-        ).as_str();
+        )
+        .as_str();
     }
 
     return Response::builder().body(Body::from(body)).unwrap();
+}
+
+pub async fn download_osz(Path(mut osz_id): Path<String>) -> Response {
+    if osz_id.contains("n") {
+        osz_id = osz_id.split_once("n").unwrap().0.to_string();
+    }
+
+    return Response::builder()
+        .status(StatusCode::MOVED_PERMANENTLY)
+        .header("Location", format!("https://mirror.lisek.cc/api/v1/download/{osz_id}").as_str())
+        .body(Body::from(()))
+        .unwrap();
 }

@@ -14,7 +14,7 @@ use crate::{
     web::scores::submission::ParsedMultipart,
 };
 
-use self::direct::search_beatmaps;
+use self::direct::{download_osz, search_beatmaps};
 
 mod direct;
 
@@ -75,4 +75,5 @@ pub fn serve() -> Router {
         .route("/web/osu-search.php", get(search_beatmaps))
         .route("/web/osu-screenshot.php", post(upload_screenshot))
         .route("/ss/:file", get(view_screenshot))
+        .route("/d/:id", get(download_osz))
 }
