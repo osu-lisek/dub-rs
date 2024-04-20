@@ -262,9 +262,11 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
     match ranking_type.as_str() {
         "set" => {
             let _ = sqlx::query!(
-                r#"UPDATE "Beatmap" SET "status" = $1 WHERE "parentId" = $2"#,
+                r#"UPDATE "Beatmap" SET "status" = $1, "updatedStatusById" = $3, "lastStatusUpdate" = $4 WHERE "parentId" = $2"#,
                 new_beatmap_status,
-                beatmap.parent_id
+                beatmap.parent_id,
+                author.user.id,
+                NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
             )
             .execute(&*bot.ctx.pool)
             .await;
@@ -293,9 +295,11 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
         }
         "map" => {
             let _ = sqlx::query!(
-                r#"UPDATE "Beatmap" SET "status" = $1 WHERE "checksum" = $2"#,
+                r#"UPDATE "Beatmap" SET "status" = $1, "updatedStatusById" = $3, "lastStatusUpdate" = $4 WHERE "checksum" = $2"#,
                 new_beatmap_status,
-                beatmap.checksum
+                beatmap.checksum,
+                author.user.id,
+                NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
             )
             .execute(&*bot.ctx.pool)
             .await;
