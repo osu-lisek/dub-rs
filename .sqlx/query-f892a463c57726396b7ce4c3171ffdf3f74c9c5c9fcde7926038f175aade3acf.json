@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"Beatmap\" SET \"status\" = $1, \"updatedStatusById\" = $3, \"lastStatusUpdate\" = $4 WHERE \"checksum\" = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Int4",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f892a463c57726396b7ce4c3171ffdf3f74c9c5c9fcde7926038f175aade3acf"
+}
