@@ -14,7 +14,7 @@ use tracing::debug;
 use crate::{
     bancho::{
         bancho_manager::BanchoManager,
-        bot::commands::{acc, map, with},
+        bot::commands::{acc, map, restrict, with},
         channel_manager::ChannelManager,
         presence::Presence,
     },
@@ -268,6 +268,22 @@ impl MioBot {
             }
             "acc" => {
                 let response = acc(self, author, args.clone()).await;
+                if let Some(response) = response {
+                    self.handle_response(
+                        message
+                            .target
+                            .to_string()
+                            .eq(&self.presence.user.username.clone())
+                            .then(|| author.user.username.to_string())
+                            .unwrap_or(message.target.to_string()),
+                        response,
+                        author,
+                    )
+                    .await;
+                }
+            },
+            "restrict" => {
+                let response: Option<String> = restrict(self, author, args.clone()).await;
                 if let Some(response) = response {
                     self.handle_response(
                         message

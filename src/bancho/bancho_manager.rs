@@ -4,8 +4,7 @@ use bancho_packets::{
     server::{
         BanchoPrivileges, ChannelInfoEnd, Notification, ProtocolVersion, SendMessage, SilenceEnd,
         UserLogout, UserPresence,
-    },
-    BanchoPacket,
+    }, BanchoMessage, BanchoPacket
 };
 use chrono::Utc;
 use tokio::sync::RwLock;
@@ -218,17 +217,22 @@ impl BanchoManager {
                     }
                 }
 
-                if is_restricted(&user).await {
-                    let message = SendMessage { sender: "Mio".into(), content: "Your account currently in restricted state, more details you can get from \"Account standing\" page on the website.".into(), target: presence.user.username.to_string().into(), sender_id: 1 };
-                    presence.enqueue(message.into_packet_data()).await;
-                }
+           
 
                 let token = presence.clone().token;
                 self.presences
                     .write()
                     .await
                     .insert(token.clone(), Arc::new(presence.clone()));
-
+                
+                if is_restricted(&user).await {
+                    channel_manager.handle_private_message(&self.get_bot_presence().await.expect("Failed to get bot."), &BanchoMessage { 
+                        sender: "Mio".into(), 
+                        content: "Your account currently in restricted state, more details you can get from \"Account standing\" page on the website.".into(), 
+                        target: presence.user.username.to_string().into(), 
+                        sender_id: 1
+                    }).await;
+                }
                 return Some(token);
             }
             None => {

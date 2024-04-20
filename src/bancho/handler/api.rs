@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::Path, http::StatusCode, Extension, Json};
 use bancho_packets::{
-    client::UserLogout, server::Notification, BanchoMessage, BanchoPacket, BanchoPacketWrite,
+    server::{Notification, UserLogout}, BanchoMessage, BanchoPacket, BanchoPacketWrite,
 };
 
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ use crate::{
     context::Context,
     utils::{
         beatmap_utils::{get_beatmap_by_id, PublicBeatmap},
-        user_utils::find_user_by_id_or_username,
+        user_utils::{find_user_by_id_or_username, is_restricted},
     },
 };
 
@@ -398,6 +398,18 @@ pub async fn refresh_user(
 
             let presence = presence.unwrap();
 
+            if is_restricted(&presence.user).await {
+
+                channel_manager.handle_private_message(&bancho_manager.get_bot_presence().await.expect("Failed to get bot"), &BanchoMessage { sender: "Mio".to_string(), content: "We have lifted your punishment, relog to take effect.".to_string(), target: presence.user.username.to_string(), sender_id: 1 }).await;
+                return (
+                    StatusCode::OK,
+                    Json(FailableResponse {
+                        ok: true,
+                        message: None,
+                        data: Some("Sent restricted packet.".to_string()),
+                    }),
+                );
+            }
             presence.refresh_stats(&ctx.pool, &ctx.redis).await;
             bancho_manager
                 .broadcast_packet(presence.stats_packet(&ctx.redis).await.into_packet())
