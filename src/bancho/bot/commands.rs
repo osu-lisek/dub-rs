@@ -1,10 +1,12 @@
+use chrono::{NaiveDateTime, Utc};
+
 use crate::{
     bancho::presence::Presence,
     utils::{
         beatmap_utils::get_beatmap_by_id,
         general_utils::to_fixed,
         performance_utils::calculate_performance_with_accuracy_list,
-        score_utils::{format_mods, parse_mods},
+        score_utils::{format_mods, parse_mods}, user_utils::{find_user_by_id_or_username, is_restricted, is_user_manager, punishment_alert, remove_ranking, restrict_user, send_bancho_message, unrestrict_user}, Punishment,
     },
 };
 
@@ -24,6 +26,53 @@ pub fn roll(_bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Option<S
         author.user.username,
         rand::random::<u32>() % max
     ))
+}
+
+pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Option<String> {
+    if !is_user_manager(&author.user) {
+        return Some("No permissions.".to_string());
+    }
+
+    let username = args.get(0);
+
+    if let None = username {
+        return Some("Usage: !restrict <username> [note]".to_string());
+    }
+
+    let username = username.unwrap().to_owned();
+
+    let user = find_user_by_id_or_username(&bot.ctx.pool, username).await;
+
+    if let Err(_) = user {
+        return Some("Failed to fetch user".to_string());
+    }
+
+    let user = user.unwrap();
+
+    if let None = user {
+        return Some("Could not find user.".to_string());
+    }
+
+    let user = user.unwrap();
+
+    if is_restricted(&user).await {
+        unrestrict_user(&bot.ctx.pool, user.id).await;
+
+        let note = args.iter().skip(1).map(|x| x.to_owned()).collect::<Vec<String>>().join(" ");
+        punishment_alert(&Punishment { id: String::new(), date: NaiveDateTime::from_timestamp_millis(Utc::now().timestamp()).unwrap_or(NaiveDateTime::UNIX_EPOCH), applied_by: author.user.id, applied_to: user.id, punishment_type: "Unrestriction".to_string(), level: "LOW".to_string(), expires: false, expires_at: None, note:  note}, &user, &author.user).await;
+    
+        send_bancho_message(&user.id, "user:restricted".to_string(), None).await;
+    } else {
+        restrict_user(&bot.ctx.pool, user.id).await;
+
+        let note = args.iter().skip(1).map(|x| x.to_owned()).collect::<Vec<String>>().join(" ");
+        punishment_alert(&Punishment { id: String::new(), date: NaiveDateTime::from_timestamp_millis(Utc::now().timestamp()).unwrap_or(NaiveDateTime::UNIX_EPOCH), applied_by: author.user.id, applied_to: user.id, punishment_type: "Restriction".to_string(), level: "LOW".to_string(), expires: false, expires_at: None, note:  note}, &user, &author.user).await;
+    
+        remove_ranking(&bot.ctx.redis, &user).await;
+        send_bancho_message(&user.id, "user:restricted".to_string(), None).await;
+    }
+
+    Some("Done".to_string())
 }
 
 pub async fn with(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Option<String> {
@@ -213,9 +262,11 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
     match ranking_type.as_str() {
         "set" => {
             let _ = sqlx::query!(
-                r#"UPDATE "Beatmap" SET "status" = $1 WHERE "parentId" = $2"#,
+                r#"UPDATE "Beatmap" SET "status" = $1, "updatedStatusById" = $3, "lastStatusUpdate" = $4 WHERE "parentId" = $2"#,
                 new_beatmap_status,
-                beatmap.parent_id
+                beatmap.parent_id,
+                author.user.id,
+                NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
             )
             .execute(&*bot.ctx.pool)
             .await;
@@ -244,9 +295,11 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
         }
         "map" => {
             let _ = sqlx::query!(
-                r#"UPDATE "Beatmap" SET "status" = $1 WHERE "checksum" = $2"#,
+                r#"UPDATE "Beatmap" SET "status" = $1, "updatedStatusById" = $3, "lastStatusUpdate" = $4 WHERE "checksum" = $2"#,
                 new_beatmap_status,
-                beatmap.checksum
+                beatmap.checksum,
+                author.user.id,
+                NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
             )
             .execute(&*bot.ctx.pool)
             .await;
