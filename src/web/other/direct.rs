@@ -119,7 +119,7 @@ pub async fn search_beatmaps(
     }
 
     if query.m > 0 {
-        ub.add_param("modes[0]", &OsuMode::from_id(query.m).to_lazer_name());
+        ub.add_param("modes[0]", &OsuMode::from_id(query.m as u8).to_lazer_name());
     }
 
     if query.r != 4 {
