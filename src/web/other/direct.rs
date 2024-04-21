@@ -118,7 +118,7 @@ pub async fn search_beatmaps(
         ub.add_param("query", query.q.as_str());
     }
 
-    if query.m < 0 {
+    if query.m > 0 {
         ub.add_param("modes[0]", query.m.to_string().as_str());
     }
 
