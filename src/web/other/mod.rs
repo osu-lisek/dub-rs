@@ -47,10 +47,11 @@ async fn upload_screenshot(
     .await
     .unwrap();
 
+    let domain = ctx.config.server_url.to_string();
     return Response::builder()
         .status(200)
         .body(Body::from(format!(
-            "https://osu.lisek.local/ss/{file_name}"
+            "https://osu.{domain}/ss/{file_name}"
         )))
         .unwrap();
 }
