@@ -3,12 +3,12 @@ use std::sync::Arc;
 use axum::{
     body::Body,
     extract::{Path, Query},
-    response::{Redirect, Response},
+    response::Response,
     Extension,
 };
-use reqwest::{ResponseBuilderExt, StatusCode, Url};
+use reqwest::StatusCode;
 use serde::Deserialize;
-use tracing::info;
+use url_builder::URLBuilder;
 
 use crate::{
     context::Context,
@@ -17,10 +17,10 @@ use crate::{
 };
 
 #[derive(Deserialize, Clone)]
-pub struct SearchQuery {
+pub struct BeatmapsQuery {
     /// username
     u: String,
-    /// passwsord
+    /// hashed password
     h: String,
     /// ranked status
     r: u8,
@@ -30,6 +30,20 @@ pub struct SearchQuery {
     m: i8,
     /// page_num
     p: i32,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct BeatmapSetQuery {
+    /// username
+    u: String,
+    /// hashed password
+    h: String,
+    /// beatmap set id
+    s: Option<i32>,
+    /// beatmap id
+    b: Option<i32>,
+    /// beatmap checksum
+    c: Option<String>,
 }
 
 pub struct SearchRequestParameters {
@@ -76,7 +90,7 @@ fn ranked_status_to_string(status: u8) -> &'static str {
 
 pub async fn search_beatmaps(
     Extension(ctx): Extension<Arc<Context>>,
-    Query(query): Query<SearchQuery>,
+    Query(query): Query<BeatmapsQuery>,
 ) -> Response {
     if !validate_auth(&ctx.redis, &ctx.pool, query.u, query.h).await {
         return Response::builder().body(Body::from("error: pass")).unwrap();
@@ -90,7 +104,7 @@ pub async fn search_beatmaps(
         status: None,
     };
 
-    let mut ub = url_builder::URLBuilder::new();
+    let mut ub = URLBuilder::new();
 
     ub.set_protocol("https")
         .set_host("mirror.lisek.cc")
@@ -116,9 +130,6 @@ pub async fn search_beatmaps(
     let request = reqwest::get(url).await.unwrap();
 
     if request.status() != StatusCode::OK {
-        info!("Status: {}", &request.status());
-        info!("URL: {}", url);
-
         return Response::builder().body(Body::from("-1|nigger")).unwrap();
     }
 
@@ -162,6 +173,75 @@ pub async fn search_beatmaps(
     return Response::builder().body(Body::from(body)).unwrap();
 }
 
+pub async fn search_beatmap_set(
+    Extension(ctx): Extension<Arc<Context>>,
+    Query(query): Query<BeatmapSetQuery>,
+) -> Response {
+    if !validate_auth(&ctx.redis, &ctx.pool, query.u, query.h).await {
+        return Response::builder().body(Body::from("error: pass")).unwrap();
+    }
+
+    let mut ub = URLBuilder::new();
+
+    ub.set_protocol("https")
+        .set_host("mirror.lisek.cc")
+        .add_route("api")
+        .add_route("v1");
+
+    if query.s.is_some() {
+        ub.add_route("beatmapsets")
+            .add_route(query.s.unwrap().to_string().as_str());
+    }
+
+    if query.b.is_some() {
+        ub.add_route("beatmapsets")
+            .add_route("beatmap")
+            .add_route(query.b.unwrap().to_string().as_str());
+    }
+
+    if query.c.is_some() {
+        ub.add_route("beatmaps")
+            .add_route("md5")
+            .add_route(query.c.unwrap().to_string().as_str());
+    }
+
+    let request = reqwest::get(&ub.build()).await.unwrap();
+
+    if request.status() != StatusCode::OK {
+        return Response::builder().body(Body::from("-1|nigger")).unwrap();
+    }
+
+    let json: serde_json::Value = request.json().await.unwrap();
+    let beatmap_set: DirectBeatmapSet = serde_json::from_value(json).unwrap();
+
+    let mut body = format!("1\n"); // format -> String
+    let mut diffs: Vec<String> = vec![];
+
+    for diff in beatmap_set.beatmaps {
+        diffs.push(format!(
+            "[{:.2}*] {}@{}",
+            diff.difficulty_rating,
+            normalize_direct_name(diff.version),
+            diff.mode_int
+        ))
+    }
+
+    body += format!(
+        "{}.osz|{}|{}|{}|{}|0|{}|{}|0|0|0|0|0|{}\n",
+        beatmap_set.id,
+        beatmap_set.artist,
+        beatmap_set.title,
+        beatmap_set.creator,
+        beatmap_set.ranked,
+        beatmap_set.last_updated,
+        beatmap_set.id,
+        diffs.join(", ")
+    )
+    .as_str();
+
+    return Response::builder().body(Body::from(body)).unwrap();
+}
+
 pub async fn download_osz(Path(mut osz_id): Path<String>) -> Response {
     if osz_id.contains("n") {
         osz_id = osz_id.split_once("n").unwrap().0.to_string();
@@ -169,7 +249,10 @@ pub async fn download_osz(Path(mut osz_id): Path<String>) -> Response {
 
     return Response::builder()
         .status(StatusCode::MOVED_PERMANENTLY)
-        .header("Location", format!("https://mirror.lisek.cc/api/v1/download/{osz_id}").as_str())
+        .header(
+            "Location",
+            format!("https://mirror.lisek.cc/api/v1/download/{osz_id}").as_str(),
+        )
         .body(Body::from(()))
         .unwrap();
 }
