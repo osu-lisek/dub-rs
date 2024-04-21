@@ -119,7 +119,7 @@ pub async fn search_beatmaps(
     }
 
     if query.m < 0 {
-        ub.add_param("mode", query.m.to_string().as_str());
+        ub.add_param("modes[0]", query.m.to_string().as_str());
     }
 
     if query.r != 4 {
