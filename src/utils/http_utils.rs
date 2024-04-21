@@ -52,6 +52,17 @@ impl OsuMode {
         }
         .to_string()
     }
+
+    pub fn to_lazer_name(&self) -> String {
+        match &self {
+            OsuMode::Osu => "osu",
+            OsuMode::Taiko => "taiko",
+            OsuMode::Fruits => "fruits",
+            OsuMode::Mania => "mania",
+            OsuMode::Relax => "osu",
+        }
+        .to_string()
+    }
 }
 
 #[derive(Deserialize, Clone)]
