@@ -130,7 +130,7 @@ pub async fn search_beatmaps(
     let request = reqwest::get(url).await.unwrap();
 
     if request.status() != StatusCode::OK {
-        return Response::builder().body(Body::from("-1|nigger")).unwrap();
+        return Response::builder().body(Body::from("-1|Unable to fetch beatmaps.")).unwrap();
     }
 
     let result: serde_json::Value = request.json().await.unwrap();
@@ -208,7 +208,7 @@ pub async fn search_beatmap_set(
     let request = reqwest::get(&ub.build()).await.unwrap();
 
     if request.status() != StatusCode::OK {
-        return Response::builder().body(Body::from("-1|nigger")).unwrap();
+        return Response::builder().body(Body::from("-1|Unable to fetch beatmap")).unwrap();
     }
 
     let json: serde_json::Value = request.json().await.unwrap();
