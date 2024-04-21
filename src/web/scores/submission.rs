@@ -15,7 +15,7 @@ use crate::{
         beatmap_utils::get_beatmap_by_hash,
         chart::Chart,
         http_utils::OsuMode,
-        performance_utils::{caculate_performance_safe, is_cap_reached},
+        performance_utils::{calculate_performance_safe, is_cap_reached},
         score_utils::{get_first_place_on_beatmap, get_score_by_id, get_user_best, UserScore},
         user_utils::{
             find_user_by_id_or_username, get_rank, get_user_stats, increase_user_playcount,
@@ -455,7 +455,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
         .then(|| OsuMode::Relax)
         .unwrap_or(OsuMode::from_id(decrypted_score.playmode));
 
-    let performance = caculate_performance_safe(
+    let performance = calculate_performance_safe(
         beatmap.clone().beatmap_id as i64,
         decrypted_score.mods as u32,
         decrypted_score.count_300 as usize,
@@ -464,6 +464,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
         decrypted_score.count_geki as usize,
         decrypted_score.count_katu as usize,
         decrypted_score.count_miss as usize,
+        decrypted_score.max_combo as usize,
         osu_mode.clone(),
     )
     .await;

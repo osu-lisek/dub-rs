@@ -1,6 +1,6 @@
-use akatsuki_pp::{osu_2019::OsuPP, AnyPP, AttributeProvider, Beatmap, BeatmapExt, GameMode, Mods};
+use akatsuki_pp::{osu_2019::OsuPP, AnyPP, Beatmap, GameMode};
 use sqlx::{Pool, Postgres};
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::utils::{beatmap_utils::get_beatmap_file, general_utils::to_fixed};
 
@@ -111,7 +111,8 @@ fn convert_mode(mode: OsuMode) -> GameMode {
         OsuMode::Relax => GameMode::Osu,
     }
 }
-pub async fn caculate_performance_safe(
+
+pub async fn calculate_performance_safe(
     beatmap_id: i64,
     mods: u32,
     n300: usize,
@@ -119,7 +120,8 @@ pub async fn caculate_performance_safe(
     n50: usize,
     n_geki: usize,
     n_katu: usize,
-    nmiss: usize,
+    n_miss: usize,
+    combo: usize,
     mode: OsuMode,
 ) -> f64 {
     let beatmap_file = get_beatmap_file(beatmap_id).await;
@@ -134,39 +136,27 @@ pub async fn caculate_performance_safe(
 
             match Beatmap::from_bytes(&beatmap_file) {
                 Ok(beatmap) => {
-                    // let performance = beatmap
-                    //     .pp()
-                    //     .mods(mods)
-                    //     .n300(n300)
-                    //     .n100(n100)
-                    //     .n50(n50)
-                    //     .n_geki(n_geki)
-                    //     .n_katu(n_katu)
-                    //     .passed_objects(n300 + n100 + n50 + nmiss)
-                    //     .n_misses(nmiss)
-                    //     .mode(convert_mode(mode))
-                    //     .calculate();
-                    if mode == OsuMode::Osu || mode == OsuMode::Relax {
+                    if mode == OsuMode::Relax {
                         let calc = OsuPP::new(&beatmap)
                             .mods(mods)
+                            .combo(combo)
                             .n300(n300)
                             .n100(n100)
                             .n50(n50)
-                            .passed_objects(n300 + n100 + n50 + nmiss)
-                            .misses(nmiss);
+                            .misses(n_miss);
 
-                        let attrs = calc.calculate();
-
-                        return attrs.pp;
+                        return calc.calculate().pp;
                     }
+
                     let calc = AnyPP::new(&beatmap)
                         .mods(mods)
+                        .combo(combo)
                         .n300(n300)
-                        .n100(n100)
-                        .n50(n50)
                         .n_geki(n_geki)
+                        .n100(n100)
                         .n_katu(n_katu)
-                        .n_misses(nmiss)
+                        .n50(n50)
+                        .n_misses(n_miss)
                         .mode(convert_mode(mode));
 
                     let attrs = calc.calculate();
