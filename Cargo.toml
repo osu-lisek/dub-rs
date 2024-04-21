@@ -26,7 +26,7 @@ uuid = { version = "1.7.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
 bancho-packets = "5.3.1"
 webhook = "2.1.2"
 reqwest = { version = "0.12.3", features = ["json"] }
-akatsuki-pp = { git = "https://github.com/osuAkatsuki/akatsuki-pp-rs", version = "*" }
+akatsuki-pp = { git = "https://github.com/osuAkatsuki/akatsuki-pp-rs", rev = "5c97207f25cf9fd07252dca1ba68d785e2147ce1" }
 serde_json = "1.0.113"
 serde_qs = "0.13.0"
 jwt = "0.16.0"
@@ -42,6 +42,7 @@ simple-rijndael = "0.3.2"
 tokio-util = "0.7.10"
 dotenvy = "0.15.7"
 serde_path_to_error = "0.1.16"
+url-builder = "0.1.1"
 
 [profile.dev]
 panic = "abort"

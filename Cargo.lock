@@ -42,7 +42,7 @@ dependencies = [
 [[package]]
 name = "akatsuki-pp"
 version = "0.9.6"
-source = "git+https://github.com/osuAkatsuki/akatsuki-pp-rs#a8b4eaffb2274d2e86ff042b7327286e13b6488d"
+source = "git+https://github.com/osuAkatsuki/akatsuki-pp-rs?rev=5c97207f25cf9fd07252dca1ba68d785e2147ce1#5c97207f25cf9fd07252dca1ba68d785e2147ce1"
 
 [[package]]
 name = "allocator-api2"
@@ -654,6 +654,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "url-builder",
  "uuid",
  "webhook",
 ]
@@ -2730,6 +2731,12 @@ dependencies = [
  "idna",
  "percent-encoding",
 ]
+
+[[package]]
+name = "url-builder"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c560d19163937c53680c515b82a9311c5a796691c67890b8ad579423123e194"
 
 [[package]]
 name = "urlencoding"

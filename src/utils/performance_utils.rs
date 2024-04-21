@@ -71,8 +71,10 @@ pub async fn calculate_performance_with_accuracy_list(
                                             continue;
                                         }
 
-                                        let calc =
-                                            AnyPP::new(&beatmap).accuracy(acc).mods(mods.unwrap_or(0)).mode(beatmap.mode);
+                                        let calc = AnyPP::new(&beatmap)
+                                            .accuracy(acc)
+                                            .mods(mods.unwrap_or(0))
+                                            .mode(beatmap.mode);
 
                                         let attrs = calc.calculate();
 

@@ -14,6 +14,10 @@ use crate::{
     web::scores::submission::ParsedMultipart,
 };
 
+use self::direct::{download_osz, search_beatmap_set, search_beatmaps};
+
+mod direct;
+
 async fn upload_screenshot(
     Extension(ctx): Extension<Arc<Context>>,
     multipart: Multipart,
@@ -68,6 +72,9 @@ async fn view_screenshot(Path(file_name): Path<String>) -> Response {
 
 pub fn serve() -> Router {
     Router::new()
+        .route("/web/osu-search.php", get(search_beatmaps))
+        .route("/web/osu-search-set.php", get(search_beatmap_set))
         .route("/web/osu-screenshot.php", post(upload_screenshot))
         .route("/ss/:file", get(view_screenshot))
+        .route("/d/:id", get(download_osz))
 }
