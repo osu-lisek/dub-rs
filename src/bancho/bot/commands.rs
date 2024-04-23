@@ -3,16 +3,18 @@ use chrono::{NaiveDateTime, Utc};
 use crate::{
     bancho::presence::Presence,
     utils::{
-        beatmap_utils::get_beatmap_by_id,
+        beatmap_utils::{announce_beatmap_status, get_beatmap_by_id, rank_to_str},
         general_utils::to_fixed,
         performance_utils::calculate_performance_with_accuracy_list,
         score_utils::{format_mods, parse_mods},
         user_utils::{
             find_user_by_id_or_username, is_restricted, is_user_manager, punishment_alert,
-            remove_ranking, restrict_user, send_bancho_message, unrestrict_user,
+            remove_ranking, restrict_user, send_bancho_message, send_message_announcement,
+            unrestrict_user,
         },
         Punishment,
     },
+    web::scores::submission::BeatmapStatus,
 };
 
 use super::mio::MioBot;
@@ -334,6 +336,32 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
                 }
                 _ => {}
             }
+
+            send_message_announcement(
+                format!(
+                    "https://c.{}/api/v2/bancho/notification",
+                    bot.ctx.config.server_url
+                ),
+                format!(
+                    "[https://{}/users/{} {}] changed status of [https://{}/b/{} {} - {}] from {} to {}",
+                    bot.ctx.config.server_url,
+                    author.user.id,
+                    author.user.username_safe,
+                    bot.ctx.config.server_url,
+                    beatmap.parent_id,
+                    beatmap.artist,
+                    beatmap.title,
+                    rank_to_str(&BeatmapStatus::from(beatmap.status)),
+                    rank_to_str(&BeatmapStatus::from(new_beatmap_status))
+                ),
+                "chat".to_string(),
+                "#announce".to_string(),
+                bot.ctx.config.token_hmac_secret.clone(),
+            )
+            .await;
+
+            announce_beatmap_status(author, beatmap, &BeatmapStatus::from(new_beatmap_status))
+                .await;
 
             return Some(format!(
                 "Updated status for set {} - {}",

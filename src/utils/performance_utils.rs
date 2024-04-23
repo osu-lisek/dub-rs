@@ -188,3 +188,14 @@ pub fn is_cap_reached(score: &UserScoreWithBeatmap) -> bool {
         _ => false,
     }
 }
+
+pub fn get_pp_cap(play_mode: i32) -> f64 {
+    match play_mode {
+        0 => 727.0,
+        1 => 800.0,
+        2 => 2300.0,
+        3 => 1200.0,
+        4 => 1800.0,
+        _ => 9999.0,
+    }
+}
