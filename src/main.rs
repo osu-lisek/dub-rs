@@ -44,7 +44,8 @@ async fn main() {
         .init();
     let run_configuration = RunConfiguration::parse();
 
-    // dotenvy::dotenv().unwrap();
+    #[cfg(debug_assertions)]
+    dotenvy::dotenv().unwrap();
 
     let connection_options = PgConnectOptions::from_str(&run_configuration.database_dsn)
         .unwrap()
