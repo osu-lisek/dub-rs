@@ -50,9 +50,7 @@ async fn upload_screenshot(
     let domain = ctx.config.server_url.to_string();
     return Response::builder()
         .status(200)
-        .body(Body::from(format!(
-            "https://osu.{domain}/ss/{file_name}"
-        )))
+        .body(Body::from(format!("https://osu.{domain}/ss/{file_name}")))
         .unwrap();
 }
 

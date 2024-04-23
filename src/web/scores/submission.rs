@@ -12,10 +12,10 @@ use tracing::{debug, error, info, warn};
 use crate::{
     context::Context,
     utils::{
-        beatmap_utils::get_beatmap_by_hash,
+        beatmap_utils::{announce_insane_score, get_beatmap_by_hash},
         chart::Chart,
         http_utils::OsuMode,
-        performance_utils::{calculate_performance_safe, is_cap_reached},
+        performance_utils::{calculate_performance_safe, get_pp_cap, is_cap_reached},
         score_utils::{get_first_place_on_beatmap, get_score_by_id, get_user_best, UserScore},
         user_utils::{
             find_user_by_id_or_username, get_rank, get_user_stats, increase_user_playcount,
@@ -583,11 +583,6 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
 
     let replay = form_data.get_file("score");
 
-    // if let Some(replay) = replay {
-
-    // }else{
-
-    // }
     match replay {
         Some(replay_bytes) => {
             let replay_path = Path::new("data")
@@ -760,6 +755,10 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
             .then(|| format!("({:.2}pp)", performance))
             .unwrap_or("".to_string());
         let formatted_announce_message = format!("[https://{}/users/{} {}] has just achieved #1 {} on [https://{}/b/{} {} - {} [{}]] ({})", ctx.config.server_url, user.id, user.username, performance_string, ctx.config.server_url, beatmap.beatmap_id, beatmap.artist, beatmap.title, beatmap.version, &osu_mode.to_string().clone());
+
+        if performance > get_pp_cap(osu_mode.to_osu()) / 2.0 {
+            announce_insane_score(&user, &new_score, performance).await;
+        }
 
         //Announcing it
         send_message_announcement(

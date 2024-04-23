@@ -6,9 +6,15 @@ use std::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{prelude::FromRow, Pool, Postgres};
-use tracing::{error, info};
+use tracing::{error, info, warn};
+use webhook::client::WebhookClient;
 
-use super::{general_utils::to_fixed, score_utils::OsuServerError};
+use crate::{bancho::presence::Presence, db::user::User, web::scores::submission::BeatmapStatus};
+
+use super::{
+    general_utils::to_fixed,
+    score_utils::{OsuServerError, UserScoreWithBeatmap},
+};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -595,4 +601,110 @@ pub async fn _get_online_beatmapset_by_id(id: i64) -> Result<OnlineBeatmapset, O
     }
 
     Ok(data.unwrap())
+}
+
+pub fn rank_to_str(status: &BeatmapStatus) -> &'static str {
+    match status {
+        BeatmapStatus::Unknown => "Unknown",
+        BeatmapStatus::NotSubmitted => "Unsubmitted",
+        BeatmapStatus::LatestPending => "Unranked",
+        BeatmapStatus::NeedUpdate => "Needs Update",
+        BeatmapStatus::Ranked => "Ranked",
+        BeatmapStatus::Approved => "Approved",
+        BeatmapStatus::Qualified => "Qualified",
+        BeatmapStatus::Loved => "Loved",
+    }
+}
+
+pub async fn announce_beatmap_status(author: &Presence, beatmap: &Beatmap, status: &BeatmapStatus) {
+    let old_status = rank_to_str(&BeatmapStatus::from(beatmap.status));
+    let new_status = rank_to_str(status);
+
+    let client = WebhookClient::new(std::env::var("DISCORD_BEATMAPS").unwrap().as_str());
+
+    if let Err(_error) = client
+        .send(|message| {
+            message.username("lisek.world/beatmaps").embed(|embed| {
+                embed
+                    .author(
+                        &author.user.username_safe,
+                        Some(format!("https://lisek.world/users/{}", author.user.id)),
+                        Some(format!("https://a.lisek.world/{}", author.user.id)),
+                    )
+                    .url(format!("https://lisek.world/b/{}", beatmap.parent_id).as_str())
+                    .image(
+                        format!(
+                            "https://assets.ppy.sh/beatmaps/{}/covers/card@2x.jpg",
+                            beatmap.parent_id
+                        )
+                        .as_str(),
+                    )
+                    .title(format!("{} - {}", beatmap.artist, beatmap.title).as_str())
+                    .footer(format!("{} to {}", old_status, new_status).as_str(), None)
+                    .field(
+                        "Circle Size (CS)",
+                        format!("{:.2}", beatmap.cs).as_str(),
+                        true,
+                    )
+                    .field("HP Drain (HP)", format!("{:.2}", beatmap.hp).as_str(), true)
+                    .field("Accuracy (OD)", format!("{:.2}", beatmap.od).as_str(), true)
+                    .field(
+                        "Approach Rate (AR)",
+                        format!("{:.2}", beatmap.ar).as_str(),
+                        true,
+                    )
+                    .field("BPM", format!("{:.2}", beatmap.bpm).as_str(), true)
+                    .field(
+                        "Star Rating (SR)",
+                        format!("{:.2}", beatmap.stars).as_str(),
+                        true,
+                    )
+            })
+        })
+        .await
+    {
+        warn!("Failed: {}", _error);
+    }
+}
+
+pub async fn announce_insane_score(author: &User, score: &UserScoreWithBeatmap, performance: f64) {
+    let client = WebhookClient::new(std::env::var("DISCORD_GENERIC").unwrap().as_str());
+
+    if let Err(_error) = client
+        .send(|message| {
+            message.username("lisek.world/generic").embed(|embed| {
+                embed.author(
+                    &author.username_safe,
+                    Some(format!("https://lisek.world/users/{}", author.id)),
+                    Some(format!("https://a.lisek.world/{}", author.id)),
+                )
+                .title(
+                    format!(
+                        "{} - {}",
+                        score.beatmap.artist,
+                        score.beatmap.title
+                    ).as_str()
+                )
+                .url(format!("https://lisek.world/b/{}", score.beatmap.parent_id).as_str())
+                .description(
+                    format!(
+                        "[**{}**](https://lisek.world/users/{}) just submitted **#1** score, that is also worth **{:.2}pp**! ||во людям делать нехуй||",
+                        author.username_safe,
+                        author.id,
+                        performance
+                    ).as_str()
+                )
+                .image(
+                    format!(
+                        "https://assets.ppy.sh/beatmaps/{}/covers/card@2x.jpg",
+                        score.beatmap.parent_id
+                    )
+                    .as_str()
+                )
+            })
+        })
+        .await
+    {
+        warn!("Failed: {}", _error);
+    }
 }
