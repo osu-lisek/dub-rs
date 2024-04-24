@@ -757,7 +757,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
         let formatted_announce_message = format!("[https://{}/users/{} {}] has just achieved #1 {} on [https://{}/b/{} {} - {} [{}]] ({})", ctx.config.server_url, user.id, user.username, performance_string, ctx.config.server_url, beatmap.beatmap_id, beatmap.artist, beatmap.title, beatmap.version, &osu_mode.to_string().clone());
 
         if performance > get_pp_cap(osu_mode.to_osu()) / 2.0 {
-            announce_insane_score(&user, &new_score, performance).await;
+            announce_insane_score(&user, &new_score).await;
         }
 
         //Announcing it
