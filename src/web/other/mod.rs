@@ -48,10 +48,11 @@ async fn upload_screenshot(
     .unwrap();
 
     let domain = ctx.config.server_url.to_string();
-    return Response::builder()
+
+    Response::builder()
         .status(200)
         .body(Body::from(format!("https://osu.{domain}/ss/{file_name}")))
-        .unwrap();
+        .unwrap()
 }
 
 async fn view_screenshot(Path(file_name): Path<String>) -> Response {
@@ -59,14 +60,14 @@ async fn view_screenshot(Path(file_name): Path<String>) -> Response {
         .await
         .unwrap();
 
-    return Response::builder()
-        .header("content-type", format!(r#"image/jpeg"#))
+    Response::builder()
+        .header("content-type", r#"image/jpeg"#.to_string())
         .header(
             "content-length",
             format!(r#"{}"#, file.metadata().await.unwrap().len()),
         )
         .body(Body::from_stream(ReaderStream::new(file)))
-        .unwrap();
+        .unwrap()
 }
 
 pub fn serve() -> Router {

@@ -50,7 +50,7 @@ impl Chart {
             result.push(format!("{}:{}", key, value))
         }
 
-        return result.join("|");
+        result.join("|")
     }
 
     pub fn build(beatmap: &Beatmap, beatmap_chart: Self, overall: Self) -> String {

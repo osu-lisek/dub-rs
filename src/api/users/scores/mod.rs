@@ -52,7 +52,7 @@ pub async fn get_best_scores(
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::NOT_FOUND,
             Json(FailableResponse {
@@ -144,7 +144,7 @@ pub async fn get_recent_scores(
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::NOT_FOUND,
             Json(FailableResponse {

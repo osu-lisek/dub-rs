@@ -45,7 +45,7 @@ pub async fn get_user_account_standing(
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::NOT_FOUND,
             Json(FailableResponse {

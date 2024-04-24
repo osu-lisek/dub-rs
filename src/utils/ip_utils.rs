@@ -275,7 +275,7 @@ pub async fn get_ip_info(ip: Option<String>) -> Option<IpApiResponse> {
         return None;
     }
 
-    return Some(resp.unwrap());
+    Some(resp.unwrap())
 }
 
 pub fn _code_from_string(country_code: String) -> u8 {

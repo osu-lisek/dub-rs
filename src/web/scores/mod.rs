@@ -45,7 +45,7 @@ async fn get_score_replay(
     let score_id = query.c;
 
     let opened_file = File::open(format!("data/replays/{}.osr_frames", score_id)).await;
-    if let Err(_) = opened_file {
+    if opened_file.is_err() {
         return "error: no".to_string().into();
     }
 
@@ -53,7 +53,7 @@ async fn get_score_replay(
 
     let mut buf = vec![0; opened_file.metadata().await.unwrap().len() as usize];
     let bytes = opened_file.read(&mut buf).await;
-    if let Err(_) = bytes {
+    if bytes.is_err() {
         return "error: fail".into();
     }
 
@@ -68,20 +68,19 @@ async fn update_beatmap(Path(file): Path<String>) -> Response {
     match response {
         Ok(response) => {
             let bytes = response.text().await.unwrap();
-            return Response::builder()
+
+            Response::builder()
                 .header(
                     "content-disposition",
                     format!(r#"attachment; filename="{}""#, file),
                 )
                 .body(Body::from(bytes))
-                .unwrap();
+                .unwrap()
         }
-        Err(_) => {
-            return Response::builder()
-                .status(404)
-                .body(Body::from(""))
-                .unwrap();
-        }
+        Err(_) => Response::builder()
+            .status(404)
+            .body(Body::from(""))
+            .unwrap(),
     }
 }
 
@@ -117,12 +116,11 @@ async fn get_scores(
 
     let user_id = user_id.unwrap();
 
-    let playmode = OsuMode::from_id(
-        128.bitand(mods.clone())
-            .eq(&128)
-            .then(|| 4)
-            .unwrap_or(mode.clone() as u8),
-    );
+    let playmode = OsuMode::from_id(if 128.bitand(mods).eq(&128) {
+        4
+    } else {
+        mode.clone() as u8
+    });
 
     let mut beatmap = get_beatmap_by_hash(&ctx.pool, beatmap_hash.clone()).await;
 
@@ -136,21 +134,19 @@ async fn get_scores(
 
             let response = reqwest::get(format!("https://osu.ppy.sh/web/maps/{}", filename)).await;
 
-            match response {
-                Ok(response) => {
-                    let bytes = response.bytes().await.unwrap();
+            if let Ok(response) = response {
+                let bytes = response.bytes().await.unwrap();
 
-                    if bytes.len() == 0 {
-                        return Response::builder().body(Body::from("-1|false")).unwrap();
-                    }
-                    //Getting hash
-                    let hash = format!("{:x}", md5::compute(bytes));
-
-                    if hash != beatmap_hash {
-                        return Response::builder().body(Body::from("1|false")).unwrap();
-                    }
+                if bytes.is_empty() {
+                    return Response::builder().body(Body::from("-1|false")).unwrap();
                 }
-                Err(_) => {}
+
+                //Getting hash
+                let hash = format!("{:x}", md5::compute(bytes));
+
+                if hash != beatmap_hash {
+                    return Response::builder().body(Body::from("1|false")).unwrap();
+                }
             }
 
             return Response::builder().body(Body::from("-1|false")).unwrap();

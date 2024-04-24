@@ -51,9 +51,7 @@ pub async fn auth(
         }
     };
 
-    // let token = token.to_str().unwrap();
-
-    let token_data = token.to_str().unwrap().split(" ").collect::<Vec<&str>>();
+    let token_data = token.to_str().unwrap().split(' ').collect::<Vec<&str>>();
 
     if token_data.len() != 2 {
         return Err((
@@ -119,12 +117,7 @@ pub async fn auth(
 
     let user = user.unwrap();
 
-    if let None = user {
-        // return Err((StatusCode::UNAUTHORIZED, Json(AuthFailedError {
-        //     ok: false,
-        //     message: "Unauthorized".to_string(),
-        //     kind: ErrorKind::Auth
-        // })))
+    if user.is_none() {
         return Ok(next.run(req).await);
     }
 

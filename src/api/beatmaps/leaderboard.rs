@@ -40,7 +40,7 @@ pub async fn get_beatmap_leaderboard(
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::BAD_REQUEST,
             Json(FailableResponse {

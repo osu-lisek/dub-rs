@@ -64,12 +64,10 @@ pub async fn _calculate_performance(
                 }),
             }
         }
-        Err(_) => {
-            return Json(CalculationResult {
-                performance: None,
-                star_rating: None,
-                ok: false,
-            })
-        }
+        Err(_) => Json(CalculationResult {
+            performance: None,
+            star_rating: None,
+            ok: false,
+        }),
     }
 }

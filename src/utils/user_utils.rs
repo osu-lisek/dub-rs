@@ -21,7 +21,7 @@ use super::{
 };
 
 pub fn to_safe(name: impl ToString) -> String {
-    return name.to_string().to_lowercase().replace(" ", "_");
+    name.to_string().to_lowercase().replace(' ', "_")
 }
 
 //Ignoring dead code and unsued variables
@@ -54,7 +54,7 @@ pub async fn validate_auth(
 
     let user_id = get_user_id(redis, connection, user.to_string()).await;
 
-    if let None = user_id {
+    if user_id.is_none() {
         return false;
     }
 
@@ -69,13 +69,13 @@ pub async fn validate_auth(
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return false;
     }
     let user = user.unwrap();
 
     if let Some(cached_pass) = cached_password {
-        return user.password == cached_pass.to_string();
+        return user.password == cached_pass;
     }
 
     let verification_result = verify(password.to_string(), &user.password);
@@ -96,11 +96,9 @@ pub async fn validate_auth(
 
                 info!("cached: {}, real: {} [2]", password.to_string(), 0);
             }
-            return result;
+            result
         }
-        Err(_) => {
-            return false;
-        }
+        Err(_) => false,
     }
 }
 
@@ -133,14 +131,14 @@ pub async fn get_user_id(
     match user {
         Err(error) => {
             info!("Failed to fetch user: {}", error);
-            return None;
+            None
         }
         Ok(user) => {
             let user = User::from_row(&user).unwrap();
             let _: Result<i32, redis::RedisError> =
                 redis_connection.set(format!("user:{}:id", to_safe(user.username_safe)), user.id);
 
-            return Some(user.id);
+            Some(user.id)
         }
     }
 }
@@ -156,15 +154,11 @@ pub async fn get_user_by_id(
 
     match user {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(None);
-            }
-            error => {
-                return Err(OsuServerError::Internal(format!(
-                    "Failed to fetch user: {}",
-                    error
-                )));
-            }
+            sqlx::Error::RowNotFound => Ok(None),
+            error => Err(OsuServerError::Internal(format!(
+                "Failed to fetch user: {}",
+                error
+            ))),
         },
         Ok(user) => Ok(Some(user)),
     }
@@ -193,15 +187,11 @@ WHERE
 
     match user {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(None);
-            }
-            error => {
-                return Err(OsuServerError::Internal(format!(
-                    "Failed to fetch user: {}",
-                    error
-                )));
-            }
+            sqlx::Error::RowNotFound => Ok(None),
+            error => Err(OsuServerError::Internal(format!(
+                "Failed to fetch user: {}",
+                error
+            ))),
         },
         Ok(user) => Ok(Some(User::from_row(&user).unwrap())),
     }
@@ -234,15 +224,11 @@ WHERE
 
     match rows {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(Vec::new());
-            }
-            error => {
-                return Err(OsuServerError::Internal(format!(
-                    "Failed to fetch hwids: {}",
-                    error
-                )));
-            }
+            sqlx::Error::RowNotFound => Ok(Vec::new()),
+            error => Err(OsuServerError::Internal(format!(
+                "Failed to fetch hwids: {}",
+                error
+            ))),
         },
         Ok(rows) => {
             let mut result = Vec::new();
@@ -277,11 +263,12 @@ WHERE
 }
 
 pub async fn update_user_country(connection: &Pool<Postgres>, user_id: i32, country: String) {
-    let _ = sqlx::query("UPDATE \"User\" SET \"country\"=$1 WHERE \"id\"=$2")
+    sqlx::query("UPDATE \"User\" SET \"country\"=$1 WHERE \"id\"=$2")
         .bind(country)
         .bind(user_id)
         .execute(connection)
-        .await;
+        .await
+        .unwrap_or_default();
 }
 
 pub async fn get_user_stats(
@@ -314,28 +301,24 @@ WHERE
     .await;
 
     match result {
-        Err(error) => {
-            return Err(OsuServerError::Internal(format!(
-                "Error while fetching stats: {}",
-                error
-            )));
-        }
-        Ok(stats) => {
-            return Ok(UserDbStats::from_row(&stats).unwrap());
-        }
+        Err(error) => Err(OsuServerError::Internal(format!(
+            "Error while fetching stats: {}",
+            error
+        ))),
+        Ok(stats) => Ok(UserDbStats::from_row(&stats).unwrap()),
     }
 }
 
 pub async fn is_restricted(user: &User) -> bool {
-    return (user.permissions & 8) > 0 && (user.flags & 32) == 0;
+    (user.permissions & 8) > 0 && (user.flags & 32) == 0
 }
 
 pub fn is_pending_verification(user: &User) -> bool {
-    return user.permissions & 8 > 0 && user.flags & 32 > 0;
+    user.permissions & 8 > 0 && user.flags & 32 > 0
 }
 
 pub fn is_verified(user: &User) -> bool {
-    return user.flags & 2 > 0;
+    user.flags & 2 > 0
 }
 
 pub async fn get_country_rank(redis: &redis::Client, user: &User, mode: &OsuMode) -> Option<i32> {
@@ -355,7 +338,7 @@ pub async fn get_country_rank(redis: &redis::Client, user: &User, mode: &OsuMode
     if let Ok(rank) = response {
         match rank {
             Some(rank) => {
-                return Some((rank as i32) + 1);
+                return Some(rank + 1);
             }
             None => {
                 return None;
@@ -383,7 +366,7 @@ pub async fn get_rank(redis: &redis::Client, user: &User, mode: &OsuMode) -> Opt
     if let Ok(rank) = response {
         match rank {
             Some(rank) => {
-                return Some((rank as i32) + 1);
+                return Some(rank + 1);
             }
             None => {
                 return None;
@@ -410,12 +393,10 @@ WHERE
     .await;
 
     match users {
-        Err(error) => {
-            return Err(OsuServerError::Internal(format!(
-                "Error while fetching inactive users: {}",
-                error
-            )));
-        }
+        Err(error) => Err(OsuServerError::Internal(format!(
+            "Error while fetching inactive users: {}",
+            error
+        ))),
         Ok(users) => {
             return Ok(users
                 .iter()
@@ -442,18 +423,14 @@ WHERE
     .await;
 
     match users {
-        Err(error) => {
-            return Err(OsuServerError::Internal(format!(
-                "Error while fetching inactive users: {}",
-                error
-            )));
-        }
-        Ok(users) => {
-            return Ok(users
-                .iter()
-                .map(|user| User::from_row(user).unwrap())
-                .collect());
-        }
+        Err(error) => Err(OsuServerError::Internal(format!(
+            "Error while fetching inactive users: {}",
+            error
+        ))),
+        Ok(users) => Ok(users
+            .iter()
+            .map(|user| User::from_row(user).unwrap())
+            .collect()),
     }
 }
 
@@ -513,7 +490,7 @@ pub async fn remove_ranking(redis: &redis::Client, user: &User) {
 }
 
 pub async fn update_user_hwid(connection: &Pool<Postgres>, user: &User, hwid: &HWID) {
-    let _ = sqlx::query(
+    sqlx::query(
         "UPDATE \"Hwid\" SET \"mac\"=$1, \"uniqueId\"=$2, \"diskId\"=$3 WHERE \"userId\"=$4",
     )
     .bind(&hwid.mac)
@@ -521,7 +498,8 @@ pub async fn update_user_hwid(connection: &Pool<Postgres>, user: &User, hwid: &H
     .bind(&hwid.disk)
     .bind(user.id)
     .execute(connection)
-    .await;
+    .await
+    .unwrap_or_default();
 }
 
 pub async fn get_user_badges(
@@ -544,15 +522,11 @@ WHERE
 
     match badges {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(Vec::new());
-            }
-            error => {
-                return Err(OsuServerError::Internal(format!(
-                    "Failed to fetch badges: {}",
-                    error
-                )));
-            }
+            sqlx::Error::RowNotFound => Ok(Vec::new()),
+            error => Err(OsuServerError::Internal(format!(
+                "Failed to fetch badges: {}",
+                error
+            ))),
         },
         Ok(badges) => {
             return Ok(badges
@@ -568,7 +542,7 @@ pub fn calculate_score_from_level(level: i64) -> i64 {
         return calculate_score_less_than_100(level);
     }
 
-    return calculate_score_more_than_100(level);
+    calculate_score_more_than_100(level)
 }
 
 pub async fn calculate_level_progress(stats: &UserDbStats) -> Result<i64, OsuServerError> {
@@ -579,12 +553,12 @@ pub async fn calculate_level_progress(stats: &UserDbStats) -> Result<i64, OsuSer
 }
 
 pub fn calculate_score_more_than_100(score: i64) -> i64 {
-    return 26931190827 + 99999999999 * (score - 100);
+    26931190827 + 99999999999 * (score - 100)
 }
 
 pub fn calculate_score_less_than_100(score: i64) -> i64 {
-    return (5000 / 3) * (4 * score.pow(3) - 3 * score.pow(2) - score)
-        + ((1.25 * (1.8_f32).powf((score as f32) - (60 as f32))) as i64);
+    (5000 / 3) * (4 * score.pow(3) - 3 * score.pow(2) - score)
+        + ((1.25 * (1.8_f32).powf((score as f32) - (60_f32))) as i64)
 }
 
 pub fn calculate_level(score: i64) -> i64 {
@@ -602,7 +576,7 @@ pub fn calculate_level(score: i64) -> i64 {
         }
     }
 
-    return 0;
+    0
 }
 
 pub async fn get_user_recent_vilations(
@@ -628,12 +602,8 @@ WHERE
 
     match rows {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(Vec::new());
-            }
-            error => {
-                return Err(OsuServerError::Internal(error.to_string()));
-            }
+            sqlx::Error::RowNotFound => Ok(Vec::new()),
+            error => Err(OsuServerError::Internal(error.to_string())),
         },
         Ok(rows) => {
             let mut result = Vec::new();
@@ -642,7 +612,7 @@ WHERE
                 result.push(Punishment::from_row(&row).unwrap());
             }
 
-            return Ok(result);
+            Ok(result)
         }
     }
 }
@@ -681,12 +651,8 @@ pub async fn get_user_relationships(
 
     match rows {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(Vec::new());
-            }
-            error => {
-                return Err(OsuServerError::Internal(error.to_string()));
-            }
+            sqlx::Error::RowNotFound => Ok(Vec::new()),
+            error => Err(OsuServerError::Internal(error.to_string())),
         },
         Ok(rows) => {
             let mut relationships = Vec::new();
@@ -707,7 +673,7 @@ pub async fn get_user_relationships(
                 });
             }
 
-            return Ok(result);
+            Ok(result)
         }
     }
 }
@@ -745,12 +711,8 @@ pub async fn get_user_followers(
 
     match rows {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(Vec::new());
-            }
-            error => {
-                return Err(OsuServerError::Internal(error.to_string()));
-            }
+            sqlx::Error::RowNotFound => Ok(Vec::new()),
+            error => Err(OsuServerError::Internal(error.to_string())),
         },
         Ok(rows) => {
             let mut relationships = Vec::new();
@@ -771,7 +733,7 @@ pub async fn get_user_followers(
                 });
             }
 
-            return Ok(result);
+            Ok(result)
         }
     }
 }
@@ -807,16 +769,10 @@ pub async fn is_user_mutual(
 
     match rows {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(false);
-            }
-            error => {
-                return Err(OsuServerError::Internal(error.to_string()));
-            }
+            sqlx::Error::RowNotFound => Ok(false),
+            error => Err(OsuServerError::Internal(error.to_string())),
         },
-        Ok(row) => {
-            return Ok(row.try_get("is_mutual").unwrap_or(false));
-        }
+        Ok(row) => Ok(row.try_get("is_mutual").unwrap_or(false)),
     }
 }
 
@@ -852,12 +808,8 @@ LIMIT
 
     match rows {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(Vec::new());
-            }
-            error => {
-                return Err(OsuServerError::Internal(error.to_string()));
-            }
+            sqlx::Error::RowNotFound => Ok(Vec::new()),
+            error => Err(OsuServerError::Internal(error.to_string())),
         },
         Ok(rows) => {
             let mut result = Vec::new();
@@ -866,13 +818,13 @@ LIMIT
                 result.push(GraphEntry::from_row(&row).unwrap());
             }
 
-            return Ok(result);
+            Ok(result)
         }
     }
 }
 
 pub async fn increment_user_coins(connection: &Pool<Postgres>, user_id: &i32, coins: i32) {
-    let _ = sqlx::query(
+    sqlx::query(
         r#"
 UPDATE
     "User"
@@ -884,7 +836,8 @@ WHERE id = $2
     .bind(coins)
     .bind(user_id)
     .execute(connection)
-    .await;
+    .await
+    .unwrap_or_default();
 }
 
 pub async fn get_leaderboard(
@@ -906,7 +859,7 @@ pub async fn get_leaderboard(
         (limit.unwrap_or(50) - 1) as isize,
     );
 
-    resp.unwrap_or(Vec::new())
+    resp.unwrap_or_default()
 }
 
 pub async fn get_leaderboard_count(redis: &redis::Client, mode: Option<OsuMode>) -> i32 {
@@ -928,7 +881,7 @@ pub async fn get_leaderboard_count(redis: &redis::Client, mode: Option<OsuMode>)
 
 pub async fn get_usersats_many(
     connection: &Pool<Postgres>,
-    users: &Vec<i32>,
+    users: &[i32],
     mode: Option<OsuMode>,
 ) -> Vec<UserDbStats> {
     if users.is_empty() {
@@ -965,9 +918,7 @@ WHERE
 
     match result {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Vec::new();
-            }
+            sqlx::Error::RowNotFound => Vec::new(),
             error => {
                 panic!("Failed to fetch user stats: {}", error);
             }
@@ -979,12 +930,12 @@ WHERE
                 result.push(UserDbStats::from_row(&row).unwrap());
             }
 
-            return result;
+            result
         }
     }
 }
 
-pub async fn get_users_many(connection: &Pool<Postgres>, users: &Vec<i32>) -> Vec<User> {
+pub async fn get_users_many(connection: &Pool<Postgres>, users: &[i32]) -> Vec<User> {
     if users.is_empty() {
         return vec![];
     }
@@ -1012,9 +963,7 @@ WHERE
 
     match result {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Vec::new();
-            }
+            sqlx::Error::RowNotFound => Vec::new(),
             error => {
                 panic!("Failed to fetch user stats: {}", error);
             }
@@ -1026,13 +975,13 @@ WHERE
                 result.push(User::from_row(&row).unwrap());
             }
 
-            return result;
+            result
         }
     }
 }
 
 pub fn is_user_manager(user: &User) -> bool {
-    return user.permissions & 1 > 0;
+    user.permissions & 1 > 0
 }
 
 pub async fn get_punishment_by_id(connection: &Pool<Postgres>, id: String) -> Option<Punishment> {
@@ -1060,12 +1009,13 @@ pub async fn restrict_user(connection: &Pool<Postgres>, user_id: i32) {
 }
 
 pub async fn unrestrict_user(connection: &Pool<Postgres>, user_id: i32) {
-    let _ = sqlx::query!(
+    sqlx::query!(
         r#"UPDATE "User" SET "permissions" = 0 WHERE id = $1"#,
         user_id
     )
     .execute(connection)
-    .await;
+    .await
+    .unwrap_or_default();
 }
 
 pub async fn get_silenced_until(connection: &Pool<Postgres>, user_id: i32) -> i64 {
@@ -1084,11 +1034,10 @@ pub async fn get_silenced_until(connection: &Pool<Postgres>, user_id: i32) -> i6
                     .unwrap_or(NaiveDateTime::UNIX_EPOCH)
                     .timestamp();
             }
-            return 0;
+
+            0
         }
-        Err(_) => {
-            return 0;
-        }
+        Err(_) => 0,
     }
 }
 
@@ -1175,10 +1124,7 @@ Note: ```
             user.username,
             user.id,
             punishment.punishment_type,
-            punishment
-                .expires_at
-                .unwrap_or(NaiveDateTime::UNIX_EPOCH)
-                .to_string(),
+            punishment.expires_at.unwrap_or(NaiveDateTime::UNIX_EPOCH),
             punishment.note
         );
 
@@ -1193,7 +1139,7 @@ Note: ```
                                 Some(format!("https://{}/users/{}", config.server_url, user.id)),
                                 Some(format!("https://a.{}/{}", config.server_url, user.id)),
                             )
-                            .description(format!("{}", formatted_report.as_str()).as_str())
+                            .description(formatted_report.as_str())
                     })
             })
             .await
@@ -1209,7 +1155,7 @@ pub async fn increase_user_score(
     score: i64,
     user_id: &i32,
 ) {
-    let _ = sqlx::query(
+    sqlx::query(
         format!(
             r#"
 UPDATE
@@ -1225,11 +1171,13 @@ WHERE
     )
     .bind(score)
     .bind(user_id)
-    .execute(connection);
+    .execute(connection)
+    .await
+    .unwrap_or_default();
 }
 
 pub async fn increase_user_playcount(connection: &Pool<Postgres>, mode: OsuMode, user_id: &i32) {
-    let _ = sqlx::query(
+    sqlx::query(
         format!(
             r#"
 UPDATE
@@ -1244,7 +1192,9 @@ WHERE
         .as_str(),
     )
     .bind(user_id)
-    .execute(connection);
+    .execute(connection)
+    .await
+    .unwrap_or_default();
 }
 
 pub async fn update_user_max_combo(
@@ -1253,7 +1203,7 @@ pub async fn update_user_max_combo(
     user_id: &i32,
     max_combo: i16,
 ) {
-    let _ = sqlx::query(
+    sqlx::query(
         format!(
             r#"
 UPDATE
@@ -1269,7 +1219,9 @@ WHERE
     )
     .bind(user_id)
     .bind(max_combo)
-    .execute(connection);
+    .execute(connection)
+    .await
+    .unwrap_or_default();
 }
 
 pub async fn recalculate_user_stats(
@@ -1319,7 +1271,7 @@ ORDER BY "performance" DESC
         pp += score.performance * to_fixed(((0.95_f32).powi((score.rank - 1_i64) as i32)) as f64, 2)
     }
 
-    let _ = sqlx::query(
+    sqlx::query(
         format!(
             r#"
     UPDATE
@@ -1338,7 +1290,8 @@ ORDER BY "performance" DESC
     .bind(avarage_accuracy / 100.0)
     .bind(user.id)
     .execute(connection)
-    .await;
+    .await
+    .unwrap_or_default();
 
     //Updating leaderboard in redis
 
@@ -1397,20 +1350,21 @@ pub async fn send_message_announcement(
 }
 
 pub async fn remove_friend(connection: &Pool<Postgres>, user_id: &i32, friend_id: &i32) {
-    let _ =
-        sqlx::query("DELETE FROM \"RelationShips\" WHERE \"userId\" = $1 AND \"friendId\" = $2")
-            .bind(user_id)
-            .bind(friend_id)
-            .execute(connection)
-            .await;
-}
-
-pub async fn add_friend(connection: &Pool<Postgres>, user_id: &i32, friend_id: &i32) {
-    let _ = sqlx::query("INSERT INTO \"RelationShips\" (\"userId\", \"friendId\") VALUES ($1, $2)")
+    sqlx::query("DELETE FROM \"RelationShips\" WHERE \"userId\" = $1 AND \"friendId\" = $2")
         .bind(user_id)
         .bind(friend_id)
         .execute(connection)
-        .await;
+        .await
+        .unwrap_or_default();
+}
+
+pub async fn add_friend(connection: &Pool<Postgres>, user_id: &i32, friend_id: &i32) {
+    sqlx::query("INSERT INTO \"RelationShips\" (\"userId\", \"friendId\") VALUES ($1, $2)")
+        .bind(user_id)
+        .bind(friend_id)
+        .execute(connection)
+        .await
+        .unwrap_or_default();
 }
 
 pub async fn is_user_friend(connection: &Pool<Postgres>, user_id: &i32, friend_id: &i32) -> bool {
@@ -1464,7 +1418,7 @@ pub async fn send_bancho_message(user_id: &i32, method: String, arguments: Optio
                 "key": config.token_hmac_secret,
                 "user_id": user_id,
                 "method": method,
-                "args": arguments.unwrap_or(Vec::new())
+                "args": arguments.unwrap_or_default()
             })
             .to_string(),
         )

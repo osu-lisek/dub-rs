@@ -1,6 +1,6 @@
 pub mod api;
 
-use std::{sync::Arc, time::SystemTime};
+use std::sync::Arc;
 
 use axum::{
     body::{to_bytes, Body},
@@ -35,7 +35,7 @@ use super::bancho_manager::BanchoManager;
 async fn bancho_get(req: axum::http::Request<Body>) -> Response<Body> {
     let manager = req.extensions().get::<Arc<BanchoManager>>();
 
-    if let None = manager {
+    if manager.is_none() {
         error!("No bancho manager found");
         return Response::builder()
             .body(Body::from("not found manager"))
@@ -95,14 +95,14 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
     let ctx = parts.extensions.get::<Arc<Context>>().unwrap();
     let host = parts.headers.get("host").unwrap().to_str().unwrap();
 
-    if let None = manager {
+    if manager.is_none() {
         error!("No bancho manager found");
         return Response::builder()
             .body(Body::from("not found manager"))
             .unwrap();
     }
 
-    if let None = channel_manager {
+    if channel_manager.is_none() {
         error!("No channel manager found");
         return Response::builder()
             .body(Body::from("not found channel manager"))
@@ -151,7 +151,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
         }
 
         let user_id = get_user_id(&ctx.redis, &ctx.pool, username).await;
-        if let None = user_id {
+        if user_id.is_none() {
             return login_failed(host.to_string(), "Invalid credentials".to_string());
         }
 
@@ -202,7 +202,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
                                         ctx.config.server_url, user.id
                                     )),
                                 )
-                                .description(format!("{}", formatted_report.as_str()).as_str())
+                                .description(formatted_report.as_str())
                                 .footer(format!("Host: {}", host).as_str(), None)
                         })
                 })
@@ -228,7 +228,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
         }
         let country = get_ip_info(ip).await;
 
-        let mut code = 0 as u8;
+        let mut code = 0_u8;
         let mut lat = 0.0;
         let mut lon = 0.0;
         if let Some(country) = country {
@@ -245,7 +245,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
             .init_user(user.id, client_data, code, lat, lon, channel_manager)
             .await;
 
-        if let None = presence {
+        if presence.is_none() {
             return login_server_error();
         }
 
@@ -274,7 +274,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
             && presence.last_ping.lock().await.timestamp() < (Utc::now().timestamp() - 60)
         {
             manager
-                .dispose_presence(presence.token.clone(), &channel_manager)
+                .dispose_presence(presence.token.clone(), channel_manager)
                 .await;
         }
     }
@@ -288,7 +288,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
         .to_string();
     let presence = manager.get_presence_by_token(token).await;
 
-    if let None = presence {
+    if presence.is_none() {
         return Response::builder()
             .header("cho-token", "nicht")
             .body(Body::from(
@@ -314,9 +314,9 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
     }
     let body = body.unwrap();
 
-    let mut reader = PacketReader::new(&body);
+    let reader = PacketReader::new(&body);
 
-    while let Some(packet) = reader.next() {
+    for packet in reader {
         let id = packet.id;
         let mut payload_reader = PayloadReader::new(packet.payload.unwrap_or_default());
 
@@ -339,7 +339,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
             }
             bancho_packets::PacketId::OSU_USER_LOGOUT => {
                 manager
-                    .dispose_presence(presence.token.to_owned(), &channel_manager)
+                    .dispose_presence(presence.token.to_owned(), channel_manager)
                     .await;
             }
             bancho_packets::PacketId::OSU_PING => {}
@@ -375,7 +375,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
             bancho_packets::PacketId::OSU_SEND_PRIVATE_MESSAGE => {
                 let payload = BanchoMessage::read(&mut payload_reader);
 
-                if let None = payload {
+                if payload.is_none() {
                     continue;
                 }
 
@@ -395,7 +395,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
             bancho_packets::PacketId::OSU_USER_STATS_REQUEST => {
                 let users = payload_reader.read::<Vec<i32>>();
 
-                if let None = users {
+                if users.is_none() {
                     continue;
                 }
 
@@ -408,7 +408,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
 
                     let user_presence = manager.get_presence_by_user_id(user).await;
 
-                    if let None = user_presence {
+                    if user_presence.is_none() {
                         continue;
                     }
 
@@ -426,7 +426,7 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
 
                     if let Some(other) = other {
                         presence
-                            .start_spectating(&other, &channel_manager, manager)
+                            .start_spectating(&other, channel_manager, manager)
                             .await;
                     }
                 }

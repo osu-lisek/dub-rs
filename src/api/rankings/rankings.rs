@@ -39,7 +39,7 @@ pub async fn leaderboard(
     let mut index = query.offset.unwrap_or(0) + 1;
     for user_id in leaderboard {
         let user = users.iter().find(|u| u.id == user_id);
-        if let None = user {
+        if user.is_none() {
             continue;
         }
         let user = user.unwrap();
@@ -69,7 +69,7 @@ pub async fn leaderboard(
             message: None,
             data: Some(RankingsResponse {
                 entries: result,
-                total_users: total_users,
+                total_users,
             }),
         }),
     )

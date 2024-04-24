@@ -67,7 +67,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
 
     match app {
         Ok(app) => {
-            if let None = app {
+            if app.is_none() {
                 return (
                     StatusCode::BAD_REQUEST,
                     Json(AccessTokenResponse {
@@ -130,7 +130,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
     }
 
     if body.grant_type == "refresh_token" {
-        if let None = body.refresh_token {
+        if body.refresh_token.is_none() {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(AccessTokenResponse {
@@ -171,7 +171,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
 
         let claims: &TokenClaim = token.claims();
         let user = get_user_by_id(&context.pool, claims.sub).await;
-        if let Err(_) = user {
+        if user.is_err() {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(AccessTokenResponse {
@@ -188,7 +188,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
 
         let user = user.unwrap();
 
-        if let None = user {
+        if user.is_none() {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(AccessTokenResponse {
@@ -217,7 +217,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
         if result
             != STANDARD_NO_PAD
                 .decode(claims.hash.clone())
-                .unwrap_or(vec![])
+                .unwrap_or_default()
         {
             return (
                 StatusCode::BAD_REQUEST,
@@ -248,7 +248,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
         let exp = chrono::Utc::now().timestamp() + 3600;
 
         let access_token_claims = TokenClaim {
-            exp: exp,
+            exp,
             sub: user.id,
             iat: chrono::Utc::now().timestamp(),
             hash: result.clone(),
@@ -363,7 +363,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
 
     let user = find_user_by_id_or_username(&context.pool, body.username.unwrap()).await;
 
-    if let Err(_) = user {
+    if user.is_err() {
         return (
             StatusCode::BAD_REQUEST,
             Json(AccessTokenResponse {
@@ -380,7 +380,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::BAD_REQUEST,
             Json(AccessTokenResponse {
@@ -438,7 +438,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
         Hmac::new_from_slice(context.config.token_hmac_secret.as_bytes()).unwrap();
 
     let access_token_claims = TokenClaim {
-        exp: exp,
+        exp,
         sub: user.id,
         iat: chrono::Utc::now().timestamp(),
         hash: result.clone(),

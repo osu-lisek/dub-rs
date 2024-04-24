@@ -161,16 +161,12 @@ pub async fn calculate_performance_safe(
 
                     let attrs = calc.calculate();
 
-                    return attrs.pp();
+                    attrs.pp()
                 }
-                Err(_) => {
-                    return 0.0;
-                }
+                Err(_) => 0.0,
             }
         }
-        Err(_) => {
-            return 0.0;
-        }
+        Err(_) => 0.0,
     }
 }
 

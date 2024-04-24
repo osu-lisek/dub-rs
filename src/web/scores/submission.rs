@@ -111,7 +111,7 @@ pub struct ScoreDecryptedData {
 
 impl ScoreDecryptedData {
     pub fn new(data: String) -> Self {
-        let mut data = data.split(":");
+        let mut data = data.split(':');
         let beatmap_md5 = data.next().unwrap().to_string();
         let player_name = data.next().unwrap().to_string();
         let some_hash = data.next().unwrap().to_string();
@@ -285,7 +285,7 @@ impl PlayerScore {
 
     pub async fn update_status(&mut self, pool: &Pool<Postgres>, status: ScoreStatus) {
         if let Some(id) = self.id {
-            let _ = sqlx::query(
+            sqlx::query(
                 r#"
                 UPDATE "Score" SET "status" = $1 WHERE "id" = $2
             "#,
@@ -293,7 +293,8 @@ impl PlayerScore {
             .bind(status.to_db())
             .bind(id)
             .execute(pool)
-            .await;
+            .await
+            .unwrap_or_default();
         }
     }
 
@@ -360,7 +361,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
 
     let version = form_data.get_field::<String>("osuver");
 
-    if let None = version {
+    if version.is_none() {
         warn!("no version");
         return "error: no".to_string();
     }
@@ -420,7 +421,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
 
     let beatmap = beatmap.unwrap();
 
-    if let None = beatmap {
+    if beatmap.is_none() {
         warn!("no beatmap");
         return "error: no".to_string();
     }
@@ -442,18 +443,18 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         warn!("no user");
         return "error: pass".to_string();
     }
 
     let user = user.unwrap();
 
-    let osu_mode = 128
-        .bitand(decrypted_score.mods)
-        .eq(&128)
-        .then(|| OsuMode::Relax)
-        .unwrap_or(OsuMode::from_id(decrypted_score.playmode));
+    let osu_mode = if 128.bitand(decrypted_score.mods).eq(&128) {
+        OsuMode::Relax
+    } else {
+        OsuMode::from_id(decrypted_score.playmode)
+    };
 
     let performance = calculate_performance_safe(
         beatmap.clone().beatmap_id as i64,
@@ -551,7 +552,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
     .await;
     let score_id = current_score.insert_score_in_db(&ctx.pool, user.id).await;
 
-    if let None = score_id {
+    if score_id.is_none() {
         warn!("no score id");
         return "error: no".to_string();
     }
@@ -573,7 +574,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
     }
     let new_score = new_score.unwrap();
 
-    if let None = new_score {
+    if new_score.is_none() {
         warn!("{}", score_id);
         warn!("no score");
         return "error: no".to_string();
@@ -588,7 +589,8 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
             let replay_path = Path::new("data")
                 .join("replays")
                 .join(format!("{}.osr_frames", score_id));
-            if !fs::metadata(&replay_path).await.is_ok() {
+
+            if fs::metadata(&replay_path).await.is_err() {
                 if let Err(error) = fs::create_dir_all(Path::new("data").join("replays")).await {
                     error!("Unable to create data folder: {}", error);
                     return "error: no".to_string();
@@ -664,34 +666,22 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
         chart_name: "Beatmap Ranking".to_string(),
         achievements: "".to_ascii_lowercase(),
         score_id,
-        rank_before: best_score
-            .clone()
-            .and_then(|x| Some(x.score.rank))
-            .unwrap_or(0) as i32,
+        rank_before: best_score.clone().map(|x| x.score.rank).unwrap_or(0) as i32,
         rank_after: new_score.rank,
         accruacy_before: best_score
             .clone()
-            .and_then(|x| Some(x.score.calculate_accuracy()))
+            .map(|x| x.score.calculate_accuracy())
             .unwrap_or(0.0),
         accuracy_after: new_score.score.calculate_accuracy(),
-        ranked_score_before: best_score
-            .clone()
-            .and_then(|x| Some(x.score.total_score))
-            .unwrap_or(0) as i64,
+        ranked_score_before: best_score.clone().map(|x| x.score.total_score).unwrap_or(0) as i64,
         ranked_score_after: new_score.score.total_score as i64,
-        combo_before: best_score
-            .clone()
-            .and_then(|x| Some(x.score.max_combo))
-            .unwrap_or(0) as i32,
+        combo_before: best_score.clone().map(|x| x.score.max_combo).unwrap_or(0) as i32,
         combo_after: new_score.score.max_combo,
-        total_score_before: best_score
-            .clone()
-            .and_then(|x| Some(x.score.total_score))
-            .unwrap_or(0) as i64,
+        total_score_before: best_score.clone().map(|x| x.score.total_score).unwrap_or(0) as i64,
         total_score_after: new_score.score.total_score as i64,
         performance_before: best_score
             .clone()
-            .and_then(|x| Some(x.score.performance))
+            .map(|x| x.score.performance)
             .unwrap_or(0.0) as f64,
         performance_after: new_score.score.performance,
     };
@@ -702,8 +692,8 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
         chart_name: "Overall Ranking".to_string(),
         achievements: "".to_ascii_lowercase(),
         score_id,
-        rank_before: rank_before,
-        rank_after: rank_after,
+        rank_before,
+        rank_after,
         accruacy_before: stats_before.accuracy * 100.0,
         accuracy_after: stats_after.accuracy * 100.0,
         ranked_score_before: stats_before.ranked_score,

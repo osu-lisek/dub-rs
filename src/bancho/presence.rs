@@ -95,9 +95,10 @@ impl Presence {
 
         other.spectator_joined(self, bancho_manager).await;
 
-        if let None = manager
+        if (manager
             .get_channel_by_name(format!("#spec_{}", other.user.id).as_str())
-            .await
+            .await)
+            .is_none()
         {
             manager
                 .create_private_channel(-other.user.id, format!("#spec_{}", other.user.id))
@@ -247,7 +248,7 @@ impl Presence {
             (stats.accuracy * 100.0) as f32,
             stats.playcount,
             stats.total_score,
-            get_rank(&redis, &self.user, &self.get_active_mode().await)
+            get_rank(redis, &self.user, &self.get_active_mode().await)
                 .await
                 .unwrap_or(0),
             stats.performance as i16,
@@ -282,7 +283,7 @@ impl Presence {
             return true;
         }
 
-        return false;
+        false
     }
 }
 

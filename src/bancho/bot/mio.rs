@@ -77,7 +77,7 @@ impl MioBot {
 
             let fetched_beatmap =
                 get_beatmap_by_id(&self.ctx.pool, beatmap_id.parse::<i64>().unwrap_or(0)).await;
-            if let Err(_) = fetched_beatmap {
+            if fetched_beatmap.is_err() {
                 self.channel_manager
                     .handle_private_message(
                         &self.presence,
@@ -94,7 +94,7 @@ impl MioBot {
 
             let fetched_beatmap = fetched_beatmap.unwrap();
 
-            if let None = fetched_beatmap {
+            if fetched_beatmap.is_none() {
                 self.channel_manager
                     .handle_private_message(
                         &self.presence,
@@ -190,15 +190,15 @@ impl MioBot {
     }
 
     pub async fn handle_response(&self, target: String, response: String, _author: &Presence) {
-        if target.starts_with("#") {
+        if target.starts_with('#') {
             self.channel_manager
                 .handle_public_message(
                     &self.presence,
                     &(BanchoMessage {
                         sender: self.presence.user.username.clone(),
                         content: response,
-                        target: target,
                         sender_id: self.presence.user.id,
+                        target,
                     }),
                 )
                 .await;
@@ -209,7 +209,7 @@ impl MioBot {
                     &(BanchoMessage {
                         sender: self.presence.user.username.clone(),
                         content: response,
-                        target: target,
+                        target,
                         sender_id: self.presence.user.id,
                     }),
                 )
@@ -221,11 +221,11 @@ impl MioBot {
         let content = message.content.clone();
 
         debug!("Started handling command: {}", content);
-        if !content.starts_with("!") {
+        if !content.starts_with('!') {
             return;
         }
 
-        let command_name = content.split_whitespace().next().unwrap().replace("!", "");
+        let command_name = content.split_whitespace().next().unwrap().replace('!', "");
         let args: Vec<String> = content
             .split_whitespace()
             .skip(1)
@@ -310,7 +310,7 @@ impl MioBot {
             let response = command(self, author, args);
             debug!("Response: {:?}", response);
             if let Some(response) = response {
-                if message.target.starts_with("#") {
+                if message.target.starts_with('#') {
                     self.channel_manager
                         .handle_public_message(
                             &self.presence,

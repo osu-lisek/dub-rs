@@ -22,7 +22,7 @@ use super::mio::MioBot;
 pub fn roll(_bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Option<String> {
     let mut max = 100;
 
-    if let Some(arg) = args.get(0) {
+    if let Some(arg) = args.first() {
         if let Ok(num) = arg.parse::<u32>() {
             max = num;
         }
@@ -40,9 +40,9 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
         return Some("No permissions.".to_string());
     }
 
-    let username = args.get(0);
+    let username = args.first();
 
-    if let None = username {
+    if username.is_none() {
         return Some("Usage: !restrict <username> [note]".to_string());
     }
 
@@ -50,13 +50,13 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
 
     let user = find_user_by_id_or_username(&bot.ctx.pool, username).await;
 
-    if let Err(_) = user {
+    if user.is_err() {
         return Some("Failed to fetch user".to_string());
     }
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return Some("Could not find user.".to_string());
     }
 
@@ -82,7 +82,7 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
                 level: "LOW".to_string(),
                 expires: false,
                 expires_at: None,
-                note: note,
+                note,
             },
             &user,
             &author.user,
@@ -110,7 +110,7 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
                 level: "LOW".to_string(),
                 expires: false,
                 expires_at: None,
-                note: note,
+                note,
             },
             &user,
             &author.user,
@@ -128,15 +128,15 @@ pub async fn with(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opt
     let beatmaps = bot.user_beatmaps.lock().await;
     let beatmap = beatmaps.get(&author.user.id);
 
-    if let None = beatmap {
+    if beatmap.is_none() {
         return Some("Please, np beatmap first".to_string());
     }
 
     let beatmap = beatmap.unwrap();
 
-    let mods_string = args.get(0);
+    let mods_string = args.first();
 
-    if let None = mods_string {
+    if mods_string.is_none() {
         return Some("Usage: !with <MODS>".to_string());
     }
 
@@ -173,13 +173,9 @@ pub async fn with(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opt
                 performance_response.join(" | ")
             );
 
-            return Some(response);
-            // bot.handle_response(author.user.username.to_string(), response, author).await
+            Some(response)
         }
-        Err(_) => {
-            return Some("Failed to calculate performance for this beatmap".to_string());
-            // bot.handle_response(author.user.username.to_string(), , author).await;
-        }
+        Err(_) => Some("Failed to calculate performance for this beatmap".to_string()),
     }
 }
 
@@ -187,15 +183,15 @@ pub async fn acc(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
     let beatmaps = bot.user_beatmaps.lock().await;
     let beatmap = beatmaps.get(&author.user.id);
 
-    if let None = beatmap {
+    if beatmap.is_none() {
         return Some("Please, np beatmap first".to_string());
     }
 
     let beatmap = beatmap.unwrap();
 
-    let mods_string = args.get(0);
+    let mods_string = args.first();
 
-    if let None = mods_string {
+    if mods_string.is_none() {
         return Some("Usage: !acc <acc>".to_string());
     }
 
@@ -233,13 +229,9 @@ pub async fn acc(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
                 performance_response.join(" | ")
             );
 
-            return Some(response);
-            // bot.handle_response(author.user.username.to_string(), response, author).await
+            Some(response)
         }
-        Err(_) => {
-            return Some("Failed to calculate performance for this beatmap".to_string());
-            // bot.handle_response(author.user.username.to_string(), , author).await;
-        }
+        Err(_) => Some("Failed to calculate performance for this beatmap".to_string()),
     }
 }
 
@@ -250,18 +242,18 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
     let beatmaps = bot.user_beatmaps.lock().await;
     let beatmap = beatmaps.get(&author.user.id);
 
-    if let None = beatmap {
+    if beatmap.is_none() {
         return Some("Please, np beatmap first".to_string());
     }
 
     let beatmap = beatmap.unwrap();
 
-    let ranked_status_string = args.get(0);
+    let ranked_status_string = args.first();
     let usage = "Usage: !map <loved/ranked/unranked> <set/map>";
-    let ranked_statuses = vec!["loved", "ranked", "unranked"];
-    let ranking_types = vec!["set", "map"];
+    let ranked_statuses = ["loved", "ranked", "unranked"];
+    let ranking_types = ["set", "map"];
 
-    if let None = ranked_status_string {
+    if ranked_status_string.is_none() {
         return Some(usage.to_string());
     }
 
@@ -272,7 +264,7 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
 
     let ranking_type = args.get(1);
 
-    if let None = ranking_type {
+    if ranking_type.is_none() {
         return Some(usage.to_string());
     }
 
@@ -300,7 +292,7 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
 
     let current_beatmap = current_beatmap.unwrap();
 
-    if let None = current_beatmap {
+    if current_beatmap.is_none() {
         return Some(
             "Looks like beatmap not in database, consider fetching leaderboard again.".to_string(),
         );
@@ -326,15 +318,13 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
             )
             .fetch_all(&*bot.ctx.pool)
             .await;
-            match beatmaps {
-                Ok(records) => {
-                    for record in records {
-                        if record.status == 2 {
-                            let _ = sqlx::query!(r#"UPDATE "Score" SET "status" = 0 WHERE "beatmapChecksum" = $1 AND "status" = 2"#, record.checksum).execute(&*bot.ctx.pool).await;
-                        }
+
+            if let Ok(records) = beatmaps {
+                for record in records {
+                    if record.status == 2 {
+                        let _ = sqlx::query!(r#"UPDATE "Score" SET "status" = 0 WHERE "beatmapChecksum" = $1 AND "status" = 2"#, record.checksum).execute(&*bot.ctx.pool).await;
                     }
                 }
-                _ => {}
             }
 
             send_message_announcement(
@@ -363,10 +353,10 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
             announce_beatmap_status(author, beatmap, &BeatmapStatus::from(new_beatmap_status))
                 .await;
 
-            return Some(format!(
+            Some(format!(
                 "Updated status for set {} - {}",
                 beatmap.artist, beatmap.title
-            ));
+            ))
         }
         "map" => {
             let _ = sqlx::query!(
@@ -383,11 +373,11 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
                 let _ = sqlx::query!(r#"UPDATE "Score" SET "status" = 0 WHERE "beatmapChecksum" = $1 AND "status" = 2"#, current_beatmap.checksum).execute(&*bot.ctx.pool).await;
             }
 
-            return Some(format!(
+            Some(format!(
                 "Updated status for beatmap {} - {}[{}]",
                 beatmap.artist, beatmap.title, beatmap.version
-            ));
+            ))
         }
-        _ => return Some("Unknown".to_string()),
+        _ => Some("Unknown".to_string()),
     }
 }

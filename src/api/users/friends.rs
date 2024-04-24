@@ -100,7 +100,7 @@ pub async fn change_friend_status(
     Extension(user): Extension<Option<User>>,
     Path(id): Path<String>,
 ) -> (StatusCode, Json<FailableResponse<bool>>) {
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::UNAUTHORIZED,
             Json(FailableResponse {
@@ -117,7 +117,7 @@ pub async fn change_friend_status(
         .await
         .unwrap_or_default();
 
-    if let None = requested_user {
+    if requested_user.is_none() {
         return (
             StatusCode::NOT_FOUND,
             Json(FailableResponse {
@@ -169,7 +169,7 @@ pub async fn get_followers(
 ) -> (StatusCode, Json<FailableResponse<Vec<Friend>>>) {
     let user = find_user_by_id_or_username(&ctx.pool, id).await.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::NOT_FOUND,
             Json(FailableResponse {
@@ -182,7 +182,7 @@ pub async fn get_followers(
 
     let user = user.unwrap();
 
-    if let None = authorized_user {
+    if authorized_user.is_none() {
         return (
             StatusCode::UNAUTHORIZED,
             Json(FailableResponse {

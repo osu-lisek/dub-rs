@@ -23,10 +23,10 @@ pub struct CalculationQueue {
 }
 
 pub async fn help_command(
-    command: String,
-    arguments: Vec<String>,
-    ctx: &Context,
-    queue: &CalculationQueue,
+    _command: String,
+    _arguments: Vec<String>,
+    _ctx: &Context,
+    _queue: &CalculationQueue,
 ) {
     println!(
         r#"
@@ -45,14 +45,14 @@ PROCESS # Starts recalculation and proceses all inputs
 }
 
 pub async fn add_command(
-    command: String,
+    _command: String,
     arguments: Vec<String>,
     ctx: &Context,
     queue: &mut CalculationQueue,
 ) {
-    let add_type = arguments.get(0);
+    let add_type = arguments.first();
 
-    if let None = add_type {
+    if add_type.is_none() {
         error!("ADD: Type hasn't be provided, use HELP for details about this command");
         return;
     }
@@ -63,7 +63,7 @@ pub async fn add_command(
         "USER" => {
             let term = arguments.get(1);
 
-            if let None = term {
+            if term.is_none() {
                 error!("ADD: No term has been provided, consider providing username or user id");
                 return;
             }
@@ -78,16 +78,17 @@ pub async fn add_command(
 
             let user = user.unwrap();
 
-            if let None = user {
+            if user.is_none() {
                 error!("ADD: No user has been found by this term");
             }
 
             let user = user.unwrap();
 
-            if queue.users.iter().find(|&x| x.id == user.id).is_some() {
+            if queue.users.iter().any(|x| x.id == user.id) {
                 warn!("ADD: This user is already in calculation queue.");
                 return;
             }
+
             //Adding it to queue
             queue.users.push(user.clone());
 
@@ -99,7 +100,7 @@ pub async fn add_command(
         "SCORE" => {
             let term = arguments.get(1);
 
-            if let None = term {
+            if term.is_none() {
                 error!("ADD: No term has been provided, consider providing username or user id");
                 return;
             }
@@ -115,7 +116,7 @@ pub async fn add_command(
 
             let score = score.unwrap();
 
-            if let None = score {
+            if score.is_none() {
                 error!("Seems like no score found with this ID");
                 return;
             }
@@ -135,7 +136,7 @@ pub async fn add_command(
         "BEATMAP" => {
             let term = arguments.get(1);
 
-            if let None = term {
+            if term.is_none() {
                 error!("ADD: No term has been provided, consider providing username or user id");
                 return;
             }
@@ -151,7 +152,7 @@ pub async fn add_command(
 
             let beatmap = beatmap.unwrap();
 
-            if let None = beatmap {
+            if beatmap.is_none() {
                 error!("Seems like no beatmap found with this ID");
                 return;
             }
@@ -166,9 +167,9 @@ pub async fn add_command(
 }
 
 pub async fn preview_command(
-    command: String,
-    arguments: Vec<String>,
-    ctx: &Context,
+    _command: String,
+    _arguments: Vec<String>,
+    _ctx: &Context,
     queue: &mut CalculationQueue,
 ) {
     let mut result = String::new();
@@ -256,8 +257,8 @@ pub async fn recalculate_terminal(ctx: Context) {
             break;
         }
 
-        let arguments: Vec<String> = buffer.split(" ").map(String::from).collect();
-        let command_name = arguments.get(0).unwrap_or(&String::from("")).to_owned();
+        let arguments: Vec<String> = buffer.split(' ').map(String::from).collect();
+        let command_name = arguments.first().unwrap_or(&String::from("")).to_owned();
         let arguments: Vec<String> = arguments
             .iter()
             .skip(1)

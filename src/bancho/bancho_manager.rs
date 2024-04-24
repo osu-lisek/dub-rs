@@ -2,8 +2,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use bancho_packets::{
     server::{
-        BanchoPrivileges, ChannelInfoEnd, Notification, ProtocolVersion, SendMessage, SilenceEnd,
-        UserLogout, UserPresence,
+        BanchoPrivileges, ChannelInfoEnd, Notification, ProtocolVersion, SilenceEnd, UserLogout,
+        UserPresence,
     },
     BanchoMessage, BanchoPacket,
 };
@@ -77,11 +77,11 @@ impl BanchoManager {
                     presence.clone().user.username,
                     presence.clone().user.clone().id
                 );
-                return true;
+                true
             }
             None => {
                 //TODO: Create new user if not
-                return false;
+                false
             }
         }
     }
@@ -228,43 +228,35 @@ impl BanchoManager {
                     channel_manager.handle_private_message(&self.get_bot_presence().await.expect("Failed to get bot."), &BanchoMessage {
                         sender: "Mio".into(),
                         content: "Your account currently in restricted state, more details you can get from \"Account standing\" page on the website.".into(),
-                        target: presence.user.username.to_string().into(),
+                        target: presence.user.username.to_string(),
                         sender_id: 1
                     }).await;
                 }
-                return Some(token);
+
+                Some(token)
             }
             None => {
                 error!("Failed to init user: User not found");
-                return None;
+                None
             }
         }
     }
 
     pub async fn get_online(&self) -> i32 {
-        return self.presences.read().await.len() as i32;
+        self.presences.read().await.len() as i32
     }
 
     pub async fn get_presence_by_token(&self, token: String) -> Option<Arc<Presence>> {
-        if let Some(presence) = self.presences.read().await.get(&token) {
-            Some(Arc::clone(presence))
-        } else {
-            None
-        }
+        self.presences.read().await.get(&token).cloned()
     }
 
     pub async fn get_presence_by_user_id(&self, user_id: i32) -> Option<Arc<Presence>> {
-        if let Some(presence) = self
-            .presences
+        self.presences
             .read()
             .await
             .iter()
             .find(|(_token, presence)| presence.user.id == user_id)
-        {
-            Some(Arc::clone(presence.1))
-        } else {
-            None
-        }
+            .map(|presence| Arc::clone(presence.1))
     }
 
     pub async fn get_presence_by_username(&self, username: String) -> Option<Arc<Presence>> {
@@ -299,7 +291,7 @@ impl BanchoManager {
     pub async fn dispose_presence(&self, token: String, channel_manager: &ChannelManager) {
         let presence = self.get_presence_by_token(token.clone()).await;
 
-        if let None = presence {
+        if presence.is_none() {
             return;
         }
 

@@ -297,10 +297,10 @@ pub async fn get_beatmap_by_hash(
 
     match beatmap {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => return Ok(None),
+            sqlx::Error::RowNotFound => Ok(None),
             err => {
                 error!("Failed to fetch beatmap from database: {}", err);
-                return Err(OsuServerError::Internal("Failed to fetch.".to_string()));
+                Err(OsuServerError::Internal("Failed to fetch.".to_string()))
             }
         },
         Ok(beatmap) => Ok(Some(beatmap)),
@@ -321,10 +321,10 @@ pub async fn get_beatmap_by_term(
 
     match beatmap {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => return Ok(None),
+            sqlx::Error::RowNotFound => Ok(None),
             err => {
                 error!("Failed to fetch beatmap from database: {}", err);
-                return Err(OsuServerError::Internal("Failed to fetch.".to_string()));
+                Err(OsuServerError::Internal("Failed to fetch.".to_string()))
             }
         },
         Ok(beatmap) => Ok(Some(beatmap)),
@@ -343,10 +343,10 @@ pub async fn get_beatmap_by_id(
 
     match beatmap {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => return Ok(None),
+            sqlx::Error::RowNotFound => Ok(None),
             err => {
                 error!("Failed to fetch beatmap from database: {}", err);
-                return Err(OsuServerError::Internal("Failed to fetch.".to_string()));
+                Err(OsuServerError::Internal("Failed to fetch.".to_string()))
             }
         },
         Ok(beatmap) => Ok(Some(beatmap)),
@@ -389,7 +389,7 @@ pub async fn get_beatmap_file(id: i64) -> Result<Option<Vec<u8>>, OsuServerError
         ));
     }
 
-    return Ok(Some(buffer));
+    Ok(Some(buffer))
 }
 
 pub async fn force_download_beatmap_by_id(id: i64) -> Result<Vec<u8>, OsuServerError> {
@@ -429,7 +429,7 @@ pub async fn force_download_beatmap_by_id(id: i64) -> Result<Vec<u8>, OsuServerE
     file.write_all(&bytes).unwrap();
     file.flush().unwrap();
 
-    return Ok(bytes.to_vec());
+    Ok(bytes.to_vec())
 }
 
 pub async fn _get_online_beatmap_by_id(id: i64) -> Result<Beatmap, OsuServerError> {
@@ -460,7 +460,7 @@ pub async fn _get_online_beatmap_by_id(id: i64) -> Result<Beatmap, OsuServerErro
 
     let beatmap = data.beatmaps.iter().find(|x| x.id == id);
 
-    if let None = beatmap {
+    if beatmap.is_none() {
         return Err(OsuServerError::FailedToFetch(
             "Failed to fetch beatmap, no beatmap in set".to_string(),
         ));
@@ -538,7 +538,7 @@ pub async fn get_online_beatmap_by_checksum(checksum: String) -> Result<Beatmap,
 
     let beatmap = data.beatmaps.iter().find(|x| x.checksum == checksum);
 
-    if let None = beatmap {
+    if beatmap.is_none() {
         return Err(OsuServerError::FailedToFetch(
             "Failed to fetch beatmap, no beatmap in set".to_string(),
         ));
@@ -695,11 +695,9 @@ pub async fn announce_insane_score(author: &User, score: &UserScoreWithBeatmap) 
                         .as_str(),
                     )
                     .footer(
-                        format!(
-                            "{}",
-                            OsuMode::from_id(score.score.playmode as u8).to_string()
-                        )
-                        .as_str(),
+                        OsuMode::from_id(score.score.playmode as u8)
+                            .to_string()
+                            .as_str(),
                         None,
                     )
                     .field(

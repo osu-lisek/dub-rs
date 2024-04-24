@@ -44,7 +44,7 @@ pub async fn serve_bancho(ctx: Context) {
 
     let bot_presence = manager.get_bot_presence().await;
 
-    if let None = bot_presence {
+    if bot_presence.is_none() {
         error!("Failed to start bancho: No bot presence found");
         return;
     }

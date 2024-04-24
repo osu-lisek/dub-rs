@@ -25,7 +25,7 @@ pub async fn fetch_channels(
 ) -> Result<Vec<DatabaseChannel>, OsuServerError> {
     let rows = sqlx::query(
         r#"
-SELECT 
+SELECT
     "Channel"."id",
     "Channel"."name",
     "Channel"."description",
@@ -39,15 +39,11 @@ FROM
 
     match rows {
         Err(error) => match error {
-            sqlx::Error::RowNotFound => {
-                return Ok(vec![]);
-            }
-            error => {
-                return Err(OsuServerError::Internal(format!(
-                    "Error while fetching channels: {}",
-                    error
-                )));
-            }
+            sqlx::Error::RowNotFound => Ok(vec![]),
+            error => Err(OsuServerError::Internal(format!(
+                "Error while fetching channels: {}",
+                error
+            ))),
         },
         Ok(rows) => {
             let mut channels = Vec::new();

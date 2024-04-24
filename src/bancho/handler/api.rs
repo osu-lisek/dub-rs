@@ -83,7 +83,7 @@ pub async fn get_server_stats(
         .await
         .unwrap();
 
-    return (
+    (
         StatusCode::OK,
         Json(FailableResponse {
             ok: true,
@@ -93,7 +93,7 @@ pub async fn get_server_stats(
                 online,
             }),
         }),
-    );
+    )
 }
 
 pub async fn get_user_status(
@@ -103,7 +103,7 @@ pub async fn get_user_status(
 ) -> (StatusCode, Json<FailableResponse<OnlineUser>>) {
     let presence = bancho_manager.get_presence_by_user_id(id).await;
 
-    if let None = presence {
+    if presence.is_none() {
         return (
             StatusCode::NOT_FOUND,
             Json(FailableResponse {
@@ -125,7 +125,7 @@ pub async fn get_user_status(
             .unwrap_or(None)
     }
 
-    return (
+    (
         StatusCode::OK,
         Json(FailableResponse {
             ok: true,
@@ -134,11 +134,11 @@ pub async fn get_user_status(
                 username: presence.user.username.clone(),
                 status: APIStatus {
                     status: status_to_string(presence_status.online_status),
-                    beatmap: beatmap.and_then(|x| Some(x.to_public())),
+                    beatmap: beatmap.map(|x| x.to_public()),
                 },
             }),
         }),
-    );
+    )
 }
 
 pub async fn send_notification(
@@ -164,7 +164,7 @@ pub async fn send_notification(
         "pm" => {
             let user = find_user_by_id_or_username(&ctx.pool, payload.target.to_string()).await;
 
-            if let Err(_) = user {
+            if user.is_err() {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(FailableResponse {
@@ -177,7 +177,7 @@ pub async fn send_notification(
 
             let user = user.unwrap();
 
-            if let None = user {
+            if user.is_none() {
                 return (
                     StatusCode::NOT_FOUND,
                     Json(FailableResponse {
@@ -192,7 +192,7 @@ pub async fn send_notification(
 
             let presence = bancho_manager.get_presence_by_user_id(user.id).await;
 
-            if let None = presence {
+            if presence.is_none() {
                 return (
                     StatusCode::NOT_FOUND,
                     Json(FailableResponse {
@@ -217,18 +217,18 @@ pub async fn send_notification(
                 )
                 .await;
 
-            return (
+            (
                 StatusCode::OK,
                 Json(FailableResponse {
                     ok: true,
                     message: None,
                     data: Some(true),
                 }),
-            );
+            )
         }
 
         "chat" => {
-            if !payload.target.to_string().starts_with("#") {
+            if !payload.target.to_string().starts_with('#') {
                 return (
                     StatusCode::BAD_REQUEST,
                     Json(FailableResponse {
@@ -251,19 +251,19 @@ pub async fn send_notification(
                 )
                 .await;
 
-            return (
+            (
                 StatusCode::OK,
                 Json(FailableResponse {
                     ok: true,
                     message: None,
                     data: Some(true),
                 }),
-            );
+            )
         }
         "notification" => {
             let user = find_user_by_id_or_username(&ctx.pool, payload.target.to_string()).await;
 
-            if let Err(_) = user {
+            if user.is_err() {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(FailableResponse {
@@ -276,7 +276,7 @@ pub async fn send_notification(
 
             let user = user.unwrap();
 
-            if let None = user {
+            if user.is_none() {
                 return (
                     StatusCode::NOT_FOUND,
                     Json(FailableResponse {
@@ -291,7 +291,7 @@ pub async fn send_notification(
 
             let presence = bancho_manager.get_presence_by_user_id(user.id).await;
 
-            if let None = presence {
+            if presence.is_none() {
                 return (
                     StatusCode::NOT_FOUND,
                     Json(FailableResponse {
@@ -308,26 +308,24 @@ pub async fn send_notification(
                 .enqueue(Notification::new(payload.message.into()).into_packet_data())
                 .await;
 
-            return (
+            (
                 StatusCode::OK,
                 Json(FailableResponse {
                     ok: true,
                     message: None,
                     data: Some(true),
                 }),
-            );
+            )
         }
 
-        _ => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(FailableResponse {
-                    ok: false,
-                    message: Some("Invalid message type".to_string()),
-                    data: None,
-                }),
-            );
-        }
+        _ => (
+            StatusCode::BAD_REQUEST,
+            Json(FailableResponse {
+                ok: false,
+                message: Some("Invalid message type".to_string()),
+                data: None,
+            }),
+        ),
     }
 }
 
@@ -354,7 +352,7 @@ pub async fn refresh_user(
                 .get_presence_by_user_id(payload.user_id)
                 .await;
 
-            if let None = presence {
+            if presence.is_none() {
                 return (
                     StatusCode::NOT_FOUND,
                     Json(FailableResponse {
@@ -386,7 +384,7 @@ pub async fn refresh_user(
                 .get_presence_by_user_id(payload.user_id)
                 .await;
 
-            if let None = presence {
+            if presence.is_none() {
                 return (
                     StatusCode::NOT_FOUND,
                     Json(FailableResponse {

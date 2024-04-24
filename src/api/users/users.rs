@@ -58,7 +58,7 @@ pub async fn get_user(
         user = fetched_user.unwrap();
     }
 
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::NOT_FOUND,
             Json(FailableResponse {
@@ -183,18 +183,18 @@ pub async fn get_user(
             data: Some(PublicUserProfile {
                 username: user.username,
                 id: user.id,
-                stats: stats,
+                stats,
                 country: user.country,
                 rankings: UserRankings {
                     global: global_rank,
                     country: country_rank,
                 },
-                username_history: user.username_history.unwrap_or(Vec::new()),
+                username_history: user.username_history.unwrap_or_default(),
                 flags: user.flags,
                 permissions: user.permissions,
                 created_at: user.created_at,
                 last_seen: user.last_seen,
-                badges: badges,
+                badges,
                 is_donor: user
                     .donor_until
                     .unwrap_or(NaiveDateTime::UNIX_EPOCH)
@@ -202,8 +202,8 @@ pub async fn get_user(
                     > Utc::now().timestamp(),
                 background_url: user.background_url,
                 leveling: Leveling {
-                    level: level,
                     progress: level_progress.unwrap_or(0),
+                    level,
                 },
                 grades: Grades {
                     xh: grades_xh,
@@ -217,9 +217,9 @@ pub async fn get_user(
                     .await
                     .unwrap_or(Vec::new())
                     .len() as i64,
-                coins: coins,
-                is_friend: is_friend,
                 is_mutual: is_mutual_friend,
+                coins,
+                is_friend,
             }),
         }),
     )
@@ -248,7 +248,7 @@ pub async fn get_user_graph(
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::NOT_FOUND,
             Json(FailableResponse {
@@ -300,14 +300,14 @@ pub async fn get_user_graph(
 
     let graph = graph.unwrap();
 
-    return (
+    (
         StatusCode::NOT_FOUND,
         Json(FailableResponse {
             ok: true,
             message: None,
             data: Some(graph),
         }),
-    );
+    )
 }
 
 #[derive(Debug, Serialize)]

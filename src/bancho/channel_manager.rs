@@ -105,9 +105,7 @@ impl ChannelManager {
 
             if users.contains(&presence.user.id) {
                 presence
-                    .enqueue(
-                        ChannelJoin::new((format!("{}", channel_name)).into()).into_packet_data(),
-                    )
+                    .enqueue(ChannelJoin::new(channel_name.to_string().into()).into_packet_data())
                     .await; // Sometimes osu doesn't know about channel that it joined
 
                 warn!(
@@ -119,7 +117,7 @@ impl ChannelManager {
             users.push(presence.user.id);
             //Sending to presence packet that he joined channel
             presence
-                .enqueue(ChannelJoin::new((format!("{}", channel_name)).into()).into_packet_data())
+                .enqueue(ChannelJoin::new(channel_name.to_string().into()).into_packet_data())
                 .await;
             info!(
                 "User {} joined channel {}",
@@ -140,7 +138,7 @@ impl ChannelManager {
             channel.users.lock().await.push(presence.user.id);
             //Sending to presence packet that he joined channel
             presence
-                .enqueue(ChannelJoin::new((format!("{}", friendly_name)).into()).into_packet_data())
+                .enqueue(ChannelJoin::new(friendly_name.to_string().into()).into_packet_data())
                 .await;
             info!(
                 "User {} joined channel {}",
@@ -175,7 +173,7 @@ impl ChannelManager {
             users.remove(index);
             //Sending to presence packet that he joined channel
             presence
-                .enqueue(ChannelKick::new((format!("{}", channel_name)).into()).into_packet_data())
+                .enqueue(ChannelKick::new(channel_name.to_string().into()).into_packet_data())
                 .await;
 
             info!(
@@ -186,17 +184,17 @@ impl ChannelManager {
     }
 
     pub async fn create_private_channel(&self, id: i32, channel_name: String) {
-        if let None = self.get_channel_by_name(&channel_name).await {
+        if (self.get_channel_by_name(&channel_name).await).is_none() {
             let mut channels = self.channels.write().await;
             channels.insert(
                 id,
                 Arc::new(Channel {
                     channel_type: "private_temp".to_string(),
-                    id: id,
                     description: "Temp channel".to_string(),
                     name: channel_name.to_string(),
                     messages: RwLock::new(Vec::new()),
                     users: Mutex::new(Vec::new()),
+                    id,
                 }),
             );
         }
@@ -227,7 +225,7 @@ impl ChannelManager {
 
         let channel = self.get_channel_by_name(&channel_name).await;
 
-        if let None = channel {
+        if channel.is_none() {
             info!(
                 "User {} tried to write in channel {} that does not exist",
                 presence.user.username, payload.target
@@ -250,7 +248,7 @@ impl ChannelManager {
             if user != presence.user.id {
                 let other_presence = self.bancho_manager.get_presence_by_user_id(user).await;
 
-                if let None = other_presence {
+                if other_presence.is_none() {
                     warn!(
                         "User {} in channel {} is offline/does not exists.",
                         user,
@@ -296,7 +294,7 @@ impl ChannelManager {
             .get_presence_by_username(payload.target.to_string())
             .await;
 
-        if let None = target {
+        if target.is_none() {
             info!(
                 "User {} tried to write in user {} that does not exist or offline",
                 presence.user.username, payload.target

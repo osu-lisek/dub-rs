@@ -16,7 +16,7 @@ pub async fn handle_vote(
 ) -> (StatusCode, Json<FailableResponse<bool>>) {
     let key = ctx.config.listing_key.clone();
 
-    if let None = key {
+    if key.is_none() {
         return (
             StatusCode::BAD_REQUEST,
             Json(FailableResponse {
@@ -42,7 +42,7 @@ pub async fn handle_vote(
 
     let user = find_user_by_id_or_username(&ctx.pool, query.username).await;
 
-    if let Err(_) = user {
+    if user.is_err() {
         return (
             StatusCode::BAD_REQUEST,
             Json(FailableResponse {
@@ -55,7 +55,7 @@ pub async fn handle_vote(
 
     let user = user.unwrap();
 
-    if let None = user {
+    if user.is_none() {
         return (
             StatusCode::BAD_REQUEST,
             Json(FailableResponse {

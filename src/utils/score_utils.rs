@@ -62,19 +62,19 @@ impl Score {
         }
 
         if self.playmode == 3 {
-            return (self.count_300
+            return self.count_300
                 + self.count_100
                 + self.count_50
                 + self.count_miss
                 + self.count_geki
-                + self.count_katu) as i32;
+                + self.count_katu;
         }
 
         self.count_300 + self.count_100 + self.count_50 + self.count_miss
     }
 
     pub fn calculate_accuracy(&self) -> f64 {
-        return (match OsuMode::from_id(self.playmode as u8) {
+        (match OsuMode::from_id(self.playmode as u8) {
             OsuMode::Osu | OsuMode::Relax => {
                 ((self.count_300 * 300 + self.count_100 * 100 + self.count_50 * 50) as f64)
                     / ((300 * self.get_total_hits()) as f64)
@@ -94,7 +94,7 @@ impl Score {
                     + (self.count_50 * 50)) as f64
                     / (self.get_total_hits() * 300) as f64
             }
-        }) * 100.0;
+        }) * 100.0
     }
 
     pub fn calculate_grade(&self) -> String {
@@ -103,22 +103,16 @@ impl Score {
         }
 
         match OsuMode::from_id(self.playmode as u8) {
-            OsuMode::Osu | OsuMode::Relax | OsuMode::Taiko => {
-                return self.calculate_grade_standard();
-            }
-            OsuMode::Fruits => {
-                return self.calculate_grade_fruits();
-            }
-            OsuMode::Mania => {
-                return self.calculate_grade_mania();
-            }
+            OsuMode::Osu | OsuMode::Relax | OsuMode::Taiko => self.calculate_grade_standard(),
+            OsuMode::Fruits => self.calculate_grade_fruits(),
+            OsuMode::Mania => self.calculate_grade_mania(),
         }
     }
 
     fn is_visibility_modes_applied(&self) -> bool {
         //HD and FL
         //Todo: Move it to enum
-        if (self.mods & ((1 << (3 as i32)) | (1 << (10 as i32)))) != 0 {
+        if (self.mods & ((1 << (3_i32)) | (1 << (10_i32)))) != 0 {
             return true;
         }
 
@@ -129,10 +123,8 @@ impl Score {
         let ratio300 = (self.count_300 as f64) / (self.get_total_hits() as f64);
         let ratio50 = (self.count_50 as f64) / (self.get_total_hits() as f64);
 
-        if ratio300 == 1.0 {
-            if self.is_visibility_modes_applied() {
-                return "XH".to_string();
-            }
+        if ratio300 == 1.0 && self.is_visibility_modes_applied() {
+            return "XH".to_string();
         }
 
         if ratio300 > 0.9 && ratio50 <= 0.01 && self.count_miss == 0 {
@@ -187,7 +179,7 @@ impl Score {
             return "C".to_string();
         }
 
-        return "D".to_string();
+        "D".to_string()
     }
 
     fn calculate_grade_mania(&self) -> String {
@@ -221,7 +213,7 @@ impl Score {
             return "C".to_string();
         }
 
-        return "D".to_string();
+        "D".to_string()
     }
 }
 
@@ -295,9 +287,9 @@ pub async fn get_user_best(
         "Score"."maxCombo" as "score_max_combo",
         row_number() OVER (ORDER BY "Score"."totalScore" DESC) as rank
         FROM "Score"
-        JOIN "User" ON "Score"."userId" = "User"."id" 
+        JOIN "User" ON "Score"."userId" = "User"."id"
         WHERE "Score"."beatmapChecksum" = $2 AND
-        "Score"."status" = $3 AND 
+        "Score"."status" = $3 AND
         "Score"."playMode" = $4 AND
         "User"."permissions" & 8 = 0
     )
@@ -310,12 +302,11 @@ pub async fn get_user_best(
     .bind(user_id)
     .bind(beatmap_checksum.clone())
     .bind(status.unwrap_or(0))
-    .bind(
-        128.bitand(mods)
-            .eq(&128)
-            .then(|| 4)
-            .unwrap_or(mode.to_osu()),
-    )
+    .bind(if 128.bitand(mods).eq(&128) {
+        4
+    } else {
+        mode.to_osu()
+    })
     .bind(mods & 128)
     .fetch_all(connection)
     .await;
@@ -366,29 +357,30 @@ SELECT "Score".*, "User".*,
     "Score"."status" as "score_status",
     "Score"."maxCombo" as "score_max_combo"
 FROM "Score"
-JOIN "User" ON "Score"."userId" = "User"."id" 
-WHERE 
-    "Score"."beatmapChecksum" = $1 AND 
-    "Score"."status" = $2 AND 
+JOIN "User" ON "Score"."userId" = "User"."id"
+WHERE
+    "Score"."beatmapChecksum" = $1 AND
+    "Score"."status" = $2 AND
     "Score"."playMode" = $3 AND
     "User"."permissions" & 8 = 0
-ORDER BY 
+ORDER BY
     "Score"."totalScore" DESC
 "#,
-            mode.eq(&OsuMode::Relax)
-                .then(|| "performance")
-                .unwrap_or("totalScore")
+            if mode.eq(&OsuMode::Relax) {
+                "performance"
+            } else {
+                "totalScore"
+            }
         )
         .as_str(),
     )
     .bind(beatmap_checksum)
     .bind(status.unwrap_or(2))
-    .bind(
-        128.bitand(mods)
-            .eq(&128)
-            .then(|| 4)
-            .unwrap_or(mode.to_osu()),
-    )
+    .bind(if 128.bitand(mods).eq(&128) {
+        4
+    } else {
+        mode.to_osu()
+    })
     .fetch_all(connection)
     .await;
 
@@ -427,14 +419,14 @@ SELECT "Score".*, "User".*,
     "Score"."status" as "score_status",
     "Score"."maxCombo" as "score_max_combo"
 FROM "Score"
-JOIN "User" ON "Score"."userId" = "User"."id" 
-WHERE 
-    "Score"."beatmapId" = $1 AND 
-    "Score"."status" = $2 AND 
+JOIN "User" ON "Score"."userId" = "User"."id"
+WHERE
+    "Score"."beatmapId" = $1 AND
+    "Score"."status" = $2 AND
     "Score"."playMode" = $3 AND
     "Score"."mods" & 128 = 0 AND
     "User"."permissions" & 8 = 0
-ORDER BY 
+ORDER BY
     "Score"."totalScore" DESC
 "#,
     )
@@ -532,8 +524,8 @@ pub async fn get_user_best_scores(
     row_number() OVER (ORDER BY "Score"."{}" DESC) as rank
 FROM
     "Score"
-	JOIN "User" ON "Score"."userId" = "User"."id" 
-	JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum" 
+	JOIN "User" ON "Score"."userId" = "User"."id"
+	JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum"
 WHERE
     "Score"."status" = $1 AND
     "Score"."playMode" = $2 AND
@@ -608,11 +600,11 @@ SELECT
     row_number() OVER (ORDER BY "Score"."submittedAt" DESC) as rank
 FROM
     "Score"
-	JOIN "User" ON "Score"."userId" = "User"."id" 
-	JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum" 
+	JOIN "User" ON "Score"."userId" = "User"."id"
+	JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum"
 WHERE
     "User"."id" = $1
-ORDER BY 
+ORDER BY
     "Score"."submittedAt" DESC
 LIMIT
     $2
@@ -675,8 +667,8 @@ SELECT
     row_number() OVER (ORDER BY "Score"."submittedAt" DESC) as rank
 FROM
     "Score"
-	JOIN "User" ON "Score"."userId" = "User"."id" 
-	JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum" 
+	JOIN "User" ON "Score"."userId" = "User"."id"
+	JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum"
 WHERE
     "Score"."id" = $1
 "#,
@@ -872,11 +864,11 @@ pub async fn get_user_scores_on_beatmap(
         "Score"."maxCombo" as "score_max_combo",
         row_number() OVER (ORDER BY "Score"."totalScore" DESC) as rank
         FROM "Score"
-        JOIN "User" ON "Score"."userId" = "User"."id" 
-        JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum" 
+        JOIN "User" ON "Score"."userId" = "User"."id"
+        JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum"
         WHERE "Beatmap"."beatmapId" = $1 AND
         "User"."id" = $2 AND
-        "Score"."mods" & 128 = $3 AND 
+        "Score"."mods" & 128 = $3 AND
         "Score"."playMode" = $4 AND
         "User"."permissions" & 8 = 0
         LIMIT 1
@@ -889,12 +881,7 @@ pub async fn get_user_scores_on_beatmap(
     )
     .bind(beatmap_id)
     .bind(user_id)
-    .bind(
-        mode.clone()
-            .eq(&OsuMode::Relax)
-            .then(|| 128)
-            .or_else(|| Some(0)),
-    )
+    .bind(mode.clone().eq(&OsuMode::Relax).then_some(128).or(Some(0)))
     .bind(mode.to_osu())
     .fetch_all(connection)
     .await;
@@ -946,11 +933,11 @@ pub async fn get_first_place_on_beatmap(
 	"Score"."maxCombo" as "score_max_combo",
 	row_number() OVER (ORDER BY "Score"."performance" DESC) as rank
 FROM "Score"
-JOIN "User" ON "Score"."userId" = "User"."id" 
-JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum" 
-WHERE 
+JOIN "User" ON "Score"."userId" = "User"."id"
+JOIN "Beatmap" ON "Beatmap"."checksum" = "Score"."beatmapChecksum"
+WHERE
 	"Score"."beatmapChecksum" = $1 AND
-	"Score"."status" = $2 AND 
+	"Score"."status" = $2 AND
 	"Score"."playMode" = $3 AND
 	"User"."permissions" & 8 = 0
 ORDER BY "rank" ASC
@@ -1057,7 +1044,7 @@ pub fn format_mods(mods: u32) -> String {
     result.join("").to_string()
 }
 
-fn find_keys_for_value<'a>(map: HashMap<u32, String>, value: String) -> Option<u32> {
+fn find_keys_for_value(map: HashMap<u32, String>, value: String) -> Option<u32> {
     let result = map.iter().find(|(_key, val)| **val == value);
 
     if let Some((key, _value)) = result {
@@ -1073,7 +1060,8 @@ pub fn parse_mods(mods: String) -> u32 {
 
     let mut i = 0;
     let mut prev_mode: String = "".to_string();
-    for mod_symbol in mods.to_uppercase().split("").into_iter() {
+
+    for mod_symbol in mods.to_uppercase().split("") {
         if i % 2 == 0 {
             prev_mode += mod_symbol;
             let mod_bitwise = find_keys_for_value(mod_keys.clone(), prev_mode);

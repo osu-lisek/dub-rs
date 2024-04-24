@@ -72,7 +72,7 @@ pub struct DirectBeatmapSet {
 }
 
 fn normalize_direct_name(input: String) -> String {
-    return input.replace("@", "").replace("|", "-");
+    input.replace('@', "").replace('|', "-")
 }
 
 fn ranked_status_to_string(status: u8) -> &'static str {
@@ -114,7 +114,7 @@ pub async fn search_beatmaps(
         .add_param("limit", params.amount.to_string().as_str())
         .add_param("offset", params.offset.to_string().as_str());
 
-    if !vec!["Newest", "Top+Rated", "Most+Played"].contains(&query.q.as_str()) {
+    if !["Newest", "Top+Rated", "Most+Played"].contains(&query.q.as_str()) {
         ub.add_param("query", query.q.as_str());
     }
 
@@ -172,7 +172,7 @@ pub async fn search_beatmaps(
         .as_str();
     }
 
-    return Response::builder().body(Body::from(body)).unwrap();
+    Response::builder().body(Body::from(body)).unwrap()
 }
 
 pub async fn search_beatmap_set(
@@ -218,7 +218,7 @@ pub async fn search_beatmap_set(
     let json: serde_json::Value = request.json().await.unwrap();
     let beatmap_set: DirectBeatmapSet = serde_json::from_value(json).unwrap();
 
-    let mut body = format!("1\n"); // format -> String
+    let mut body = "1\n".to_string();
     let mut diffs: Vec<String> = vec![];
 
     for diff in beatmap_set.beatmaps {
@@ -243,12 +243,12 @@ pub async fn search_beatmap_set(
     )
     .as_str();
 
-    return Response::builder().body(Body::from(body)).unwrap();
+    Response::builder().body(Body::from(body)).unwrap()
 }
 
 pub async fn download_osz(Path(mut osz_id): Path<String>) -> Response {
-    if osz_id.contains("n") {
-        osz_id = osz_id.split_once("n").unwrap().0.to_string();
+    if osz_id.contains('n') {
+        osz_id = osz_id.split_once('n').unwrap().0.to_string();
     }
 
     return Response::builder()
