@@ -13,7 +13,8 @@ use crate::{bancho::presence::Presence, db::user::User, web::scores::submission:
 
 use super::{
     general_utils::to_fixed,
-    score_utils::{OsuServerError, UserScoreWithBeatmap},
+    http_utils::OsuMode,
+    score_utils::{format_mods, OsuServerError, UserScoreWithBeatmap},
 };
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -520,7 +521,6 @@ pub async fn get_online_beatmap_by_checksum(checksum: String) -> Result<Beatmap,
         .await
         .unwrap_or("".to_string())
         .as_str()
-        .clone()
         .to_owned();
     let jd = &mut serde_json::Deserializer::from_str(r.as_str());
 
@@ -667,40 +667,61 @@ pub async fn announce_beatmap_status(author: &Presence, beatmap: &Beatmap, statu
     }
 }
 
-pub async fn announce_insane_score(author: &User, score: &UserScoreWithBeatmap, performance: f64) {
+pub async fn announce_insane_score(author: &User, score: &UserScoreWithBeatmap) {
     let client = WebhookClient::new(std::env::var("DISCORD_GENERIC").unwrap().as_str());
 
     if let Err(_error) = client
         .send(|message| {
             message.username("lisek.world/generic").embed(|embed| {
-                embed.author(
-                    &author.username_safe,
-                    Some(format!("https://lisek.world/users/{}", author.id)),
-                    Some(format!("https://a.lisek.world/{}", author.id)),
-                )
-                .title(
-                    format!(
-                        "{} - {}",
-                        score.beatmap.artist,
-                        score.beatmap.title
-                    ).as_str()
-                )
-                .url(format!("https://lisek.world/b/{}", score.beatmap.parent_id).as_str())
-                .description(
-                    format!(
-                        "[**{}**](https://lisek.world/users/{}) just submitted **#1** score, that is also worth **{:.2}pp**! ||во людям делать нехуй||",
-                        author.username_safe,
-                        author.id,
-                        performance
-                    ).as_str()
-                )
-                .image(
-                    format!(
-                        "https://assets.ppy.sh/beatmaps/{}/covers/card@2x.jpg",
-                        score.beatmap.parent_id
+                embed
+                    .author(
+                        &author.username_safe,
+                        Some(format!("https://lisek.world/users/{}", author.id)),
+                        Some(format!("https://a.lisek.world/{}", author.id)),
                     )
-                    .as_str()
-                )
+                    .title(
+                        format!(
+                            "{} - {} [{}]",
+                            score.beatmap.artist, score.beatmap.title, score.beatmap.version
+                        )
+                        .as_str(),
+                    )
+                    .url(format!("https://lisek.world/b/{}", score.beatmap.parent_id).as_str())
+                    .image(
+                        format!(
+                            "https://assets.ppy.sh/beatmaps/{}/covers/card@2x.jpg",
+                            score.beatmap.parent_id
+                        )
+                        .as_str(),
+                    )
+                    .footer(
+                        format!(
+                            "{}",
+                            OsuMode::from_id(score.score.playmode as u8).to_string()
+                        )
+                        .as_str(),
+                        None,
+                    )
+                    .field(
+                        "Mods",
+                        format!("+{}", &format_mods(score.score.mods as u32)).as_str(),
+                        true,
+                    )
+                    .field(
+                        "Accuracy",
+                        format!(
+                            "{:.2}% ({})",
+                            score.score.calculate_accuracy(),
+                            score.score.calculate_grade()
+                        )
+                        .as_str(),
+                        true,
+                    )
+                    .field(
+                        "PP",
+                        format!("{:.2}pp", score.score.performance).as_str(),
+                        true,
+                    )
             })
         })
         .await
