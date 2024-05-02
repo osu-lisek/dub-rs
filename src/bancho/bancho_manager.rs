@@ -7,7 +7,7 @@ use bancho_packets::{
     },
     BanchoMessage, BanchoPacket,
 };
-use chrono::Utc;
+use chrono::{NaiveDateTime, Utc};
 use tokio::sync::RwLock;
 use tracing::{debug, error, info};
 
@@ -233,6 +233,7 @@ impl BanchoManager {
                     }).await;
                 }
 
+                let _ = sqlx::query!(r#"UPDATE "User" SET "lastSeen" = $1 WHERE id = $2"#, NaiveDateTime::from_timestamp_millis(Utc::now().timestamp()), user.id).execute(&*self.context.pool).await;
                 Some(token)
             }
             None => {
