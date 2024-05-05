@@ -33,6 +33,9 @@ async fn health_check() -> &'static str {
 
 #[tokio::main]
 async fn main() {
+    #[cfg(debug_assertions)]
+    dotenvy::dotenv().unwrap();
+    
     tracing_subscriber::FmtSubscriber::builder()
         .with_thread_names(true)
         .with_target(false)
@@ -44,8 +47,7 @@ async fn main() {
         .init();
     let run_configuration = RunConfiguration::parse();
 
-    #[cfg(debug_assertions)]
-    dotenvy::dotenv().unwrap();
+  
 
     let connection_options = PgConnectOptions::from_str(&run_configuration.database_dsn)
         .unwrap()
