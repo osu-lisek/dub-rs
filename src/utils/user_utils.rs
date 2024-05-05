@@ -824,7 +824,7 @@ LIMIT
 }
 
 pub async fn increment_user_coins(connection: &Pool<Postgres>, user_id: &i32, coins: i32) {
-    sqlx::query(
+    sqlx::query!(
         r#"
 UPDATE
     "User"
@@ -832,9 +832,9 @@ SET
     "coins" = "coins" + $1
 WHERE id = $2
 "#,
+        coins,
+        user_id
     )
-    .bind(coins)
-    .bind(user_id)
     .execute(connection)
     .await
     .unwrap_or_default();
