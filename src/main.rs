@@ -33,6 +33,7 @@ async fn health_check() -> &'static str {
 
 #[tokio::main]
 async fn main() {
+    #[cfg(debug_assertions)]
     dotenvy::dotenv().unwrap();
     
     tracing_subscriber::FmtSubscriber::builder()
