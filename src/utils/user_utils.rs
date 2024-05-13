@@ -1048,27 +1048,25 @@ pub async fn insert_user_punishment(
     applied_to: i32,
     punishment_type: String,
     expires: bool,
-    expires_at: NaiveDateTime,
+    expires_at: Option<NaiveDateTime>,
     note: String,
 ) -> Option<Punishment> {
     let id = Uuid::new_v4().to_string();
-    let row = sqlx::query(
-        format!(
+    let row = sqlx::query!(
             r#"
-    INSERT INTO "Punishment" VALUES ($1, $2, '{0}', $3, $4, '{1}', $5, $6, $7)
-    RETURNING "id"
-"#,
-            level, punishment_type
-        )
-        .as_str(),
+        INSERT INTO "Punishment" VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING "id"
+    "#,
+    id,
+    NaiveDateTime::from_timestamp_millis(Utc::now().timestamp()),
+    level,
+    applied_by,
+    applied_to,
+    punishment_type,
+    expires,
+    expires_at.unwrap_or(NaiveDateTime::UNIX_EPOCH),
+    note
     )
-    .bind(id)
-    .bind(NaiveDateTime::from_timestamp_millis(Utc::now().timestamp()))
-    .bind(applied_by)
-    .bind(applied_to)
-    .bind(expires)
-    .bind(expires_at)
-    .bind(note)
     .fetch_one(connection)
     .await;
 
@@ -1077,9 +1075,9 @@ pub async fn insert_user_punishment(
             error!("{}", err);
             None
         }
-        Ok(rows) => {
-            let id: String = rows.get("id");
+        Ok(record) => {
 
+            let id = record.id;
             let punishment = get_punishment_by_id(connection, id).await;
 
             if let Some(punishment) = punishment {
@@ -1128,11 +1126,11 @@ Note: ```
             punishment.note
         );
 
-        if let Err(_error) = client
+        if let Err(error) = client
             .send(|message| {
                 message
-                    .content("Multiple users with the same HWID found!")
-                    .embed(|embed| {
+                        .content("New user punishment!")
+                        .embed(|embed| {
                         embed
                             .author(
                                 &user.username,
@@ -1144,7 +1142,7 @@ Note: ```
             })
             .await
         {
-            warn!("Failed to send alert: {}", webhook);
+            warn!("Failed to send alert: {}", error);
         }
     }
 }
@@ -1185,7 +1183,7 @@ UPDATE
 SET
 "playCount{0}" = "playCount{0}" + 1
 WHERE
-"userId" = $2
+"userId" = $1
 "#,
             mode.to_db_suffix()
         )

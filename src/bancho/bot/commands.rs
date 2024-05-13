@@ -8,9 +8,7 @@ use crate::{
         performance_utils::calculate_performance_with_accuracy_list,
         score_utils::{format_mods, parse_mods},
         user_utils::{
-            find_user_by_id_or_username, is_restricted, is_user_manager, punishment_alert,
-            remove_ranking, restrict_user, send_bancho_message, send_message_announcement,
-            unrestrict_user,
+            find_user_by_id_or_username, insert_user_punishment, is_restricted, is_user_manager, punishment_alert, remove_ranking, restrict_user, send_bancho_message, send_message_announcement, unrestrict_user
         },
         Punishment,
     },
@@ -79,7 +77,7 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
                 applied_by: author.user.id,
                 applied_to: user.id,
                 punishment_type: "Unrestriction".to_string(),
-                level: "LOW".to_string(),
+                level: "CRITICAL".to_string(),
                 expires: false,
                 expires_at: None,
                 note,
@@ -88,7 +86,9 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
             &author.user,
         )
         .await;
-
+    
+        //lifting all punishments
+        let _ = sqlx::query!(r#"UPDATE "Punishment" SET "expires" = true, "expiresAt" = '1970-01-01T00:00:00+00:00' WHERE "appliedTo" = $1"#, user.id).execute(&*bot.ctx.pool).await;
         send_bancho_message(&user.id, "user:restricted".to_string(), None).await;
     } else {
         restrict_user(&bot.ctx.pool, user.id).await;
@@ -99,24 +99,7 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
             .map(|x| x.to_owned())
             .collect::<Vec<String>>()
             .join(" ");
-        punishment_alert(
-            &Punishment {
-                id: String::new(),
-                date: NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
-                    .unwrap_or(NaiveDateTime::UNIX_EPOCH),
-                applied_by: author.user.id,
-                applied_to: user.id,
-                punishment_type: "Restriction".to_string(),
-                level: "LOW".to_string(),
-                expires: false,
-                expires_at: None,
-                note,
-            },
-            &user,
-            &author.user,
-        )
-        .await;
-
+        insert_user_punishment(&bot.ctx.pool, "CRITICAL".to_string(), author.user.id, user.id, "RESTRICTION".to_string(), false, None, note).await;
         remove_ranking(&bot.ctx.redis, &user).await;
         send_bancho_message(&user.id, "user:restricted".to_string(), None).await;
     }

@@ -616,7 +616,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
                     user.id,
                     "RESTRICTION".to_string(),
                     false,
-                    NaiveDateTime::UNIX_EPOCH,
+                    None,
                     "Lia: Hasn't sent a replay file.".to_string(),
                 )
                 .await;
@@ -729,7 +729,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
                 user.id,
                 "RESTRICTION".to_string(),
                 false,
-                NaiveDateTime::UNIX_EPOCH,
+                None,
                 format!(
                     "Lia: user has reached pp cap (score_id: {}).",
                     new_score.score.id
