@@ -506,8 +506,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
         count_miss: decrypted_score.count_miss as i32,
         mods: decrypted_score.mods,
         perfect: decrypted_score.perfect,
-        submitted_at: NaiveDateTime::from_timestamp_millis(Utc::now().timestamp_millis())
-            .unwrap_or_default(),
+        submitted_at: Utc::now().naive_utc(),
     };
 
     let old_score = PlayerScore::from_user_score(&best_score);

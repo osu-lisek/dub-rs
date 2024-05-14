@@ -72,8 +72,7 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
         punishment_alert(
             &Punishment {
                 id: String::new(),
-                date: NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
-                    .unwrap_or(NaiveDateTime::UNIX_EPOCH),
+                date: Utc::now().naive_utc(),
                 applied_by: author.user.id,
                 applied_to: user.id,
                 punishment_type: "Unrestriction".to_string(),
@@ -290,8 +289,7 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
                 new_beatmap_status,
                 beatmap.parent_id,
                 author.user.id,
-                NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
-            )
+                Utc::now().naive_utc())
             .execute(&*bot.ctx.pool)
             .await;
 
@@ -347,7 +345,7 @@ pub async fn map(bot: &mut MioBot, author: &Presence, args: Vec<String>) -> Opti
                 new_beatmap_status,
                 beatmap.checksum,
                 author.user.id,
-                NaiveDateTime::from_timestamp_millis(Utc::now().timestamp())
+                Utc::now().naive_utc()
             )
             .execute(&*bot.ctx.pool)
             .await;

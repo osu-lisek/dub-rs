@@ -1058,7 +1058,7 @@ pub async fn insert_user_punishment(
         RETURNING "id"
     "#,
     id,
-    NaiveDateTime::from_timestamp_millis(Utc::now().timestamp()),
+    Utc::now().naive_utc(),
     level,
     applied_by,
     applied_to,
