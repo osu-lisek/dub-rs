@@ -511,7 +511,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
 
     let old_score = PlayerScore::from_user_score(&best_score);
 
-    info!(
+    debug!(
         "quit: {}, failed: {}, status: {:#?}",
         quit, decrypted_score.failed, current_score.status
     );
@@ -535,7 +535,7 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
                     beatmap.clone().status.into(),
                 );
 
-                info!("new status: {:#?}", current_score.status);
+                debug!("new status: {:#?}", current_score.status);
             }
         } else {
             current_score.status =
