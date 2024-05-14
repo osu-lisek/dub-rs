@@ -456,6 +456,10 @@ pub async fn submit_score(Extension(ctx): Extension<Arc<Context>>, data: Multipa
         OsuMode::from_id(decrypted_score.playmode)
     };
 
+    if decrypted_score.playmode != 0 && osu_mode == OsuMode::Relax {
+        return "error: no".to_string();
+    }
+
     let performance = calculate_performance_safe(
         beatmap.clone().beatmap_id as i64,
         decrypted_score.mods as u32,
