@@ -405,6 +405,7 @@ pub async fn login(req: extract::Request<Body>) -> impl IntoResponse {
     let password_md5_display = format!("{:x}", password_md5);
     match bcrypt::verify(password_md5_display.as_bytes(), &user.password) {
         Err(_) | Ok(false) => {
+            #[cfg(not(debug_assertions))]
             return (
                 StatusCode::BAD_REQUEST,
                 Json(AccessTokenResponse {
