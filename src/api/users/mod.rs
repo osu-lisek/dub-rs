@@ -10,6 +10,7 @@ pub mod friends;
 pub mod scores;
 pub mod security;
 pub mod users;
+pub mod avatar;
 
 #[derive(Debug, Serialize)]
 pub struct Leveling {
@@ -106,5 +107,9 @@ pub fn router() -> Router {
         .route(
             "/api/v2/users/:id/followers",
             get(crate::api::users::friends::get_followers),
+        )
+        .route(
+            "/api/v2/users/:id/avatar",
+            post(crate::api::users::avatar::upload_avatar),
         )
 }

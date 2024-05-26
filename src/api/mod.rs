@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{middleware, routing::get, Extension, Router};
+use axum::{extract::DefaultBodyLimit, middleware, routing::get, Extension, Router};
 use serde::Serialize;
 use tower::ServiceBuilder;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
@@ -49,7 +49,8 @@ pub async fn serve_api(ctx: Context) {
         .nest("/api/v2/beatmaps", crate::api::beatmaps::router())
         .nest("/api/v2/rankings", crate::api::rankings::router())
         .route("/health", get(health_check))
-        .layer(layer_ctx);
+        .layer(layer_ctx)
+        .layer(DefaultBodyLimit::max(1024*8));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, router).await.unwrap();
