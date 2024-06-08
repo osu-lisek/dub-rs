@@ -175,14 +175,16 @@ pub fn is_cap_reached(score: &UserScoreWithBeatmap) -> bool {
         return false;
     }
 
-    match score.score.playmode {
-        0 => score.score.performance >= 727.0,
-        1 => score.score.performance >= 800.0,
-        2 => score.score.performance >= 2300.0,
-        3 => score.score.performance >= 1200.0,
-        4 => score.score.performance >= 1800.0,
-        _ => false,
-    }
+
+    return score.score.performance > get_pp_cap(score.score.playmode)
+    // match score.score.playmode {
+    //     0 => score.score.performance >= 727.0,
+    //     1 => score.score.performance >= 800.0,
+    //     2 => score.score.performance >= 2300.0,
+    //     3 => score.score.performance >= 1200.0,
+    //     4 => score.score.performance >= 1800.0,
+    //     _ => false,
+    // }
 }
 
 pub fn get_pp_cap(play_mode: i32) -> f64 {

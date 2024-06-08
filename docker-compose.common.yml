@@ -2,7 +2,9 @@ version: '3'
 
 services:
   dub:
-    image: ghcr.io/osu-lisek/dub-rs:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "localhost:3000"]
       interval: 1m

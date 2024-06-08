@@ -10,6 +10,13 @@ services:
       - 9888:3000
     environment:
       - APP_COMPONENT=api
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dub
   bancho:
     extends:
       file: 'docker-compose.common.yml'
@@ -18,6 +25,13 @@ services:
       - 9889:3000
     environment:
       - APP_COMPONENT=bancho
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dub
   web:
     extends:
       file: 'docker-compose.common.yml'
@@ -26,3 +40,38 @@ services:
       - 9890:3000
     environment:
       - APP_COMPONENT=web
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dub
+  db:
+    image: "postgres:16.3-alpine" 
+    environment:
+      - POSTGRES_PASSWORD=dub
+      - POSTGRES_USER=dub
+      - POSTGRES_DB=dub
+    volumes:
+      - ./db:/var/lib/postgresql/data:rw
+      - ./scripts/sql:/docker-entrypoint-initdb.d/:rw
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "dub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dub
+  redis:
+    image: "redis:7.2.5-alpine"
+    volumes:
+      - ./redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+    networks:
+      - dub
+
+networks:
+  dub:
+    driver: bridge

@@ -11,7 +11,7 @@ use chrono::{DateTime, Utc};
 use redis::Client;
 use sqlx::{Pool, Postgres};
 use tokio::sync::{Mutex, RwLock};
-use tracing::error;
+use tracing::{debug, error, info};
 use uuid::Uuid;
 
 use crate::{
@@ -164,6 +164,7 @@ impl Presence {
         let spectators = self.spectators.lock().await;
 
         for spectator_id in spectators.iter() {
+            info!("Sending {} frame bytes to {}", frames.len(), spectator_id);
             if let Some(spectator) = manager.get_presence_by_user_id(*spectator_id).await {
                 spectator
                     .enqueue(SpectatorFrames::new(frames.clone()).into_packet_data())
