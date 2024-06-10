@@ -13,3 +13,5 @@ services:
       start_period: 1s
     env_file:
       - .env
+    volumes:
+      - data:/app/data
