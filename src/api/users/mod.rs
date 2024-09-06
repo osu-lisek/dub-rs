@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils::{http_utils::OsuMode, Badge, UserDbStats};
 
+pub mod avatar;
 pub mod friends;
 pub mod scores;
 pub mod security;
 pub mod users;
-pub mod avatar;
 
 #[derive(Debug, Serialize)]
 pub struct Leveling {

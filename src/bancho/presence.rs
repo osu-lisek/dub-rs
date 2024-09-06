@@ -11,7 +11,7 @@ use chrono::{DateTime, Utc};
 use redis::Client;
 use sqlx::{Pool, Postgres};
 use tokio::sync::{Mutex, RwLock};
-use tracing::{debug, error, info};
+use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::{

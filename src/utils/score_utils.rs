@@ -980,27 +980,6 @@ LIMIT 1
     }
 }
 
-/*
-
-const modShortnames: { [key: string]: OsuMods } = {
-  NF: OsuMods.NoFail,
-  EZ: OsuMods.Easy,
-  TD: OsuMods.TouchDevice,
-  HD: OsuMods.Hidden,
-  HR: OsuMods.HardRock,
-  SD: OsuMods.SuddenDeath,
-  DT: OsuMods.DoubleTime,
-  RX: OsuMods.Relax,
-  HT: OsuMods.HalfTime,
-  NC: OsuMods.Nightcore,
-  FL: OsuMods.Flashlight,
-  AT: OsuMods.Autoplay,
-  SO: OsuMods.SpunOut,
-  AP: OsuMods.Relax2
-};
-
-*/
-
 pub fn get_mods_hashmap() -> HashMap<u32, String> {
     let mut mod_keys = HashMap::new();
     mod_keys.insert(1 << 0, "NF".to_string());

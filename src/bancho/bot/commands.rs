@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, Utc};
+use chrono::Utc;
 
 use crate::{
     bancho::presence::Presence,
@@ -8,7 +8,9 @@ use crate::{
         performance_utils::calculate_performance_with_accuracy_list,
         score_utils::{format_mods, parse_mods},
         user_utils::{
-            find_user_by_id_or_username, insert_user_punishment, is_restricted, is_user_manager, punishment_alert, remove_ranking, restrict_user, send_bancho_message, send_message_announcement, unrestrict_user
+            find_user_by_id_or_username, insert_user_punishment, is_restricted, is_user_manager,
+            punishment_alert, remove_ranking, restrict_user, send_bancho_message,
+            send_message_announcement, unrestrict_user,
         },
         Punishment,
     },
@@ -85,7 +87,7 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
             &author.user,
         )
         .await;
-    
+
         //lifting all punishments
         let _ = sqlx::query!(r#"UPDATE "Punishment" SET "expires" = true, "expiresAt" = '1970-01-01T00:00:00+00:00' WHERE "appliedTo" = $1"#, user.id).execute(&*bot.ctx.pool).await;
         send_bancho_message(&user.id, "user:restricted".to_string(), None).await;
@@ -98,7 +100,17 @@ pub async fn restrict(bot: &mut MioBot, author: &Presence, args: Vec<String>) ->
             .map(|x| x.to_owned())
             .collect::<Vec<String>>()
             .join(" ");
-        insert_user_punishment(&bot.ctx.pool, "CRITICAL".to_string(), author.user.id, user.id, "RESTRICTION".to_string(), false, None, note).await;
+        insert_user_punishment(
+            &bot.ctx.pool,
+            "CRITICAL".to_string(),
+            author.user.id,
+            user.id,
+            "RESTRICTION".to_string(),
+            false,
+            None,
+            note,
+        )
+        .await;
         remove_ranking(&bot.ctx.redis, &user).await;
         send_bancho_message(&user.id, "user:restricted".to_string(), None).await;
     }

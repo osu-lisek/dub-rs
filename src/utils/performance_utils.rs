@@ -175,8 +175,7 @@ pub fn is_cap_reached(score: &UserScoreWithBeatmap) -> bool {
         return false;
     }
 
-
-    return score.score.performance > get_pp_cap(score.score.playmode)
+    return score.score.performance > get_pp_cap(score.score.playmode);
     // match score.score.playmode {
     //     0 => score.score.performance >= 727.0,
     //     1 => score.score.performance >= 800.0,

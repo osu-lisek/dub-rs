@@ -437,7 +437,6 @@ async fn bancho_post(req: axum::http::Request<Body>) -> Response<Body> {
             bancho_packets::PacketId::OSU_SPECTATE_FRAMES => {
                 let data = payload_reader.payload();
                 presence.spectate_frames(data.to_vec(), manager).await;
-                
             }
             id => {
                 warn!("Unhandled packet: {}", id);

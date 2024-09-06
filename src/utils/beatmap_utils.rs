@@ -104,9 +104,21 @@ pub struct Hype {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RequiredMeta {
+    #[serde(rename = "main_ruleset")]
+    pub main_ruleset: i64,
+    #[serde(rename = "non_main_ruleset")]
+    pub non_main_ruleset: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NominationsSummary {
     pub current: i64,
-    pub required: i64,
+    #[serde(rename = "required_meta")]
+    pub required_meta: RequiredMeta,
+    #[serde(rename = "eligible_main_rulesets")]
+    pub eligible_main_rulesets: Vec<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -504,7 +516,7 @@ pub async fn _get_online_beatmap_by_id(id: i64) -> Result<Beatmap, OsuServerErro
 
 pub async fn get_online_beatmap_by_checksum(checksum: String) -> Result<Beatmap, OsuServerError> {
     let response = reqwest::get(format!(
-        "https://mirror.lisek.cc/api/v1/beatmaps/md5/{}",
+        "https://direct.osuokayu.moe/api/v1/beatmaps/md5/{}",
         checksum
     ))
     .await;

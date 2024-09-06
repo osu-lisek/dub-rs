@@ -1053,19 +1053,19 @@ pub async fn insert_user_punishment(
 ) -> Option<Punishment> {
     let id = Uuid::new_v4().to_string();
     let row = sqlx::query!(
-            r#"
+        r#"
         INSERT INTO "Punishment" VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING "id"
     "#,
-    id,
-    Utc::now().naive_utc(),
-    level,
-    applied_by,
-    applied_to,
-    punishment_type,
-    expires,
-    expires_at.unwrap_or(NaiveDateTime::UNIX_EPOCH),
-    note
+        id,
+        Utc::now().naive_utc(),
+        level,
+        applied_by,
+        applied_to,
+        punishment_type,
+        expires,
+        expires_at.unwrap_or(NaiveDateTime::UNIX_EPOCH),
+        note
     )
     .fetch_one(connection)
     .await;
@@ -1076,7 +1076,6 @@ pub async fn insert_user_punishment(
             None
         }
         Ok(record) => {
-
             let id = record.id;
             let punishment = get_punishment_by_id(connection, id).await;
 
@@ -1128,17 +1127,15 @@ Note: ```
 
         if let Err(error) = client
             .send(|message| {
-                message
-                        .content("New user punishment!")
-                        .embed(|embed| {
-                        embed
-                            .author(
-                                &user.username,
-                                Some(format!("https://{}/users/{}", config.server_url, user.id)),
-                                Some(format!("https://a.{}/{}", config.server_url, user.id)),
-                            )
-                            .description(formatted_report.as_str())
-                    })
+                message.content("New user punishment!").embed(|embed| {
+                    embed
+                        .author(
+                            &user.username,
+                            Some(format!("https://{}/users/{}", config.server_url, user.id)),
+                            Some(format!("https://a.{}/{}", config.server_url, user.id)),
+                        )
+                        .description(formatted_report.as_str())
+                })
             })
             .await
         {

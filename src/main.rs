@@ -22,7 +22,6 @@ mod clean;
 mod config;
 mod context;
 mod db;
-mod managers;
 mod recalculate;
 mod utils;
 mod web;
@@ -35,7 +34,7 @@ async fn health_check() -> &'static str {
 async fn main() {
     #[cfg(debug_assertions)]
     dotenvy::dotenv().unwrap();
-    
+
     tracing_subscriber::FmtSubscriber::builder()
         .with_thread_names(true)
         .with_target(false)
@@ -46,8 +45,6 @@ async fn main() {
         .compact()
         .init();
     let run_configuration = RunConfiguration::parse();
-
-  
 
     let connection_options = PgConnectOptions::from_str(&run_configuration.database_dsn)
         .unwrap()
